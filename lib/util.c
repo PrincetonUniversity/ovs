@@ -1134,6 +1134,15 @@ is_all_ones(const void *p_, size_t n)
     return true;
 }
 
+/* @Shahbaz: */
+void ovs_apply_mask(const uint8_t *key, const uint8_t * header,
+                    const uint8_t *mask, uint8_t *res, size_t n_bytes) {
+    int i;
+    for (i = 0; i < n_bytes; i++) {
+        res[i] = key[i] | (header[i] & ~mask[i]);
+    }
+}
+
 /* Copies 'n_bits' bits starting from bit 'src_ofs' in 'src' to the 'n_bits'
  * starting from bit 'dst_ofs' in 'dst'.  'src' is 'src_len' bytes long and
  * 'dst' is 'dst_len' bytes long.

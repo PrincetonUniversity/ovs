@@ -44,6 +44,9 @@
 #include "ofproto-provider.h"
 #include "lacp.h"
 
+#include "p4/src/ovs_match_ofproto_dpif_sflow.h" /* @Shahbaz: */
+#include "p4/src/ovs_action_ofproto_dpif_sflow.h" /* @Shahbaz: */
+
 VLOG_DEFINE_THIS_MODULE(sflow);
 
 static struct ovs_mutex mutex;
@@ -1024,6 +1027,8 @@ sflow_read_set_action(const struct nlattr *attr,
         }
         break;
 
+    OVS_SFLOW_READ_SET_ACTION /* @Shahbaz: */
+
     case OVS_KEY_ATTR_TCP_FLAGS:
     case OVS_KEY_ATTR_ICMP:
     case OVS_KEY_ATTR_ICMPV6:
@@ -1166,6 +1171,13 @@ dpif_sflow_read_actions(const struct flow *flow,
 	    dpif_sflow_pop_mpls_lse(sflow_actions);
 	    break;
 	}
+
+        OVS_SFLOW_READ_ACTIONS /* @Shahbaz: */
+        
+        /* @Shahbaz: */
+        case OVS_ACTION_ATTR_DEPARSE:
+            break;
+
 	case OVS_ACTION_ATTR_SAMPLE:
 	case OVS_ACTION_ATTR_UNSPEC:
 	case __OVS_ACTION_ATTR_MAX:

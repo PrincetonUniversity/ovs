@@ -26,6 +26,8 @@
 #include "packets.h"
 #include "util.h"
 
+#include "p4/src/ovs_match_meta_flow.h" /* @Shahbaz: */
+
 struct ds;
 struct match;
 
@@ -1566,6 +1568,8 @@ enum OVS_PACKED_ENUM mf_field_id {
      */
     MFF_ND_TLL,
 
+#include "p4/src/ovs_match_enum.h" /* @Shahbaz: */
+
     MFF_N_IDS
 };
 
@@ -1746,6 +1750,7 @@ union mf_value {
     ovs_be32 be32;
     ovs_be16 be16;
     uint8_t u8;
+    uint8_t data[128]; /* @Shahbaz: */
 };
 BUILD_ASSERT_DECL(sizeof(union mf_value) == 128);
 BUILD_ASSERT_DECL(sizeof(union mf_value) >= GENEVE_MAX_OPT_SIZE);

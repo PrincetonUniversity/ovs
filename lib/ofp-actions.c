@@ -33,6 +33,8 @@
 #include "util.h"
 #include "openvswitch/vlog.h"
 
+#include "p4/src/ovs_action_ofp_actions.h" /* @Shahbaz: */
+
 VLOG_DEFINE_THIS_MODULE(ofp_actions);
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(1, 5);
@@ -295,6 +297,11 @@ enum ofp_raw_action_type {
 
     /* NX1.0+(255): void. */
     NXAST_RAW_DEBUG_RECIRC,
+    
+#include "p4/src/ovs_action_type.h" /* @Shahbaz: */
+    
+    /* OF1.5+(31): void. */
+    OFPAT_RAW_DEPARSE,
 };
 
 /* OpenFlow actions are always a multiple of 8 bytes in length. */
@@ -721,6 +728,41 @@ format_ENQUEUE(const struct ofpact_enqueue *a, struct ds *s)
     ds_put_format(s, "enqueue:");
     ofputil_format_port(a->port, s);
     ds_put_format(s, ":%"PRIu32, a->queue);
+}
+
+OVS_STRUCTS /* @Shahbaz: */
+
+OVS_FUNCTIONS /* @Shahbaz: */
+
+/* @Shahbaz: */
+static enum ofperr
+decode_OFPAT_RAW_DEPARSE(struct ofpbuf *out)
+{
+    ofpact_put_DEPARSE(out);
+    return 0;
+}
+
+static void
+encode_DEPARSE(const struct ofpact_null *null OVS_UNUSED,
+               enum ofp_version ofp_version, struct ofpbuf *out)
+{
+    if (ofp_version >= OFP15_VERSION) {
+        put_OFPAT_DEPARSE(out);
+    }
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+parse_DEPARSE(char *arg OVS_UNUSED, struct ofpbuf *ofpacts,
+              enum ofputil_protocol *usable_protocols OVS_UNUSED)
+{
+    ofpact_put_DEPARSE(ofpacts);
+    return NULL;
+}
+
+static void
+format_DEPARSE(const struct ofpact_null *a OVS_UNUSED, struct ds *s)
+{
+    ds_put_cstr(s, "deparse");
 }
 
 /* Action structure for NXAST_OUTPUT_REG.
@@ -4863,6 +4905,13 @@ ofpact_is_set_or_move_action(const struct ofpact *a)
     case OFPACT_WRITE_METADATA:
     case OFPACT_DEBUG_RECIRC:
         return false;
+
+    OVS_IS_SET_OR_MOVE_ACTION /* @Shahbaz: */
+                
+    /* @Shahbaz: */
+    case OFPACT_DEPARSE:
+        return false;
+
     default:
         OVS_NOT_REACHED();
     }
@@ -4932,6 +4981,12 @@ ofpact_is_allowed_in_actions_set(const struct ofpact *a)
     case OFPACT_WRITE_ACTIONS:
     case OFPACT_WRITE_METADATA:
         return false;
+
+    OVS_IS_ALLOWED_IN_ACTIONS_SET /* @Shahbaz: */
+                
+    case OFPACT_DEPARSE:
+        return false;
+
     default:
         OVS_NOT_REACHED();
     }
@@ -5094,6 +5149,13 @@ ovs_instruction_type_from_ofpact_type(enum ofpact_type type)
         return OVSINST_OFPIT11_WRITE_METADATA;
     case OFPACT_GOTO_TABLE:
         return OVSINST_OFPIT11_GOTO_TABLE;
+
+    OVS_INSTRUCTION_TYPE_FROM_OFPACT_TYPE /* @Shahbaz: */
+                
+    /* @Shahbaz: */
+    case OFPACT_DEPARSE:
+        return OVSINST_OFPIT11_APPLY_ACTIONS;
+    
     case OFPACT_OUTPUT:
     case OFPACT_GROUP:
     case OFPACT_CONTROLLER:
@@ -5736,6 +5798,12 @@ ofpact_check__(enum ofputil_protocol *usable_protocols, struct ofpact *a,
     case OFPACT_DEBUG_RECIRC:
         return 0;
 
+    OVS_CHECK__ /* @Shahbaz: */
+                
+    /* @Shahbaz: */
+    case OFPACT_DEPARSE:
+        return 0;
+
     default:
         OVS_NOT_REACHED();
     }
@@ -6116,6 +6184,12 @@ ofpact_outputs_to_port(const struct ofpact *ofpact, ofp_port_t port)
         return ofpact_get_ENQUEUE(ofpact)->port == port;
     case OFPACT_CONTROLLER:
         return port == OFPP_CONTROLLER;
+
+    OVS_OUTPUTS_TO_PORT /* @Shahbaz: */
+                
+    /* @Shahbaz: */
+    case OFPACT_DEPARSE:
+        return false;
 
     case OFPACT_OUTPUT_REG:
     case OFPACT_BUNDLE:
@@ -6833,4 +6907,3 @@ pad_ofpat(struct ofpbuf *openflow, size_t start_ofs)
     oah = ofpbuf_at_assert(openflow, start_ofs, sizeof *oah);
     oah->len = htons(openflow->size - start_ofs);
 }
-

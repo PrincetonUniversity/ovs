@@ -43,6 +43,9 @@
 #include <linux/types.h>
 #include <linux/if_ether.h>
 
+#include "p4/src/ovs_match_openvswitch.h" /* @Shahbaz: */
+#include "p4/src/ovs_action_openvswitch.h" /* @Shahbaz: */
+
 /**
  * struct ovs_header - header for OVS Generic Netlink messages.
  * @dp_ifindex: ifindex of local port for datapath (0 to make a request not
@@ -348,6 +351,9 @@ enum ovs_key_attr {
 	/* Only used within kernel data path. */
 	OVS_KEY_ATTR_TUNNEL_INFO,  /* struct ovs_tunnel_info */
 #endif
+
+	OVS_KEY_ATTRS /* @Shahbaz: */
+
 	__OVS_KEY_ATTR_MAX
 };
 
@@ -455,6 +461,8 @@ struct ovs_key_nd {
 	__u8	nd_sll[ETH_ALEN];
 	__u8	nd_tll[ETH_ALEN];
 };
+
+OVS_KEYS /* @Shahbaz: */
 
 /**
  * enum ovs_flow_attr - attributes for %OVS_FLOW_* commands.
@@ -706,6 +714,9 @@ enum ovs_action_attr {
 #ifndef __KERNEL__
 	OVS_ACTION_ATTR_TUNNEL_PUSH,   /* struct ovs_action_push_tnl*/
 	OVS_ACTION_ATTR_TUNNEL_POP,    /* u32 port number. */
+	OVS_ACTION_ATTR                /* @Shahbaz: */
+        /* @Shahbaz: */
+        OVS_ACTION_ATTR_DEPARSE,
 #endif
 	__OVS_ACTION_ATTR_MAX,	      /* Nothing past this will be accepted
 				       * from userspace. */

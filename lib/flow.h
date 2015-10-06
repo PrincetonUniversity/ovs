@@ -29,6 +29,8 @@
 #include "hash.h"
 #include "util.h"
 
+#include "p4/src/ovs_match_flow.h" /* @Shahbaz: */
+
 struct dpif_flow_stats;
 struct ds;
 struct flow_wildcards;
@@ -134,6 +136,7 @@ struct flow {
     ovs_be16 tp_dst;            /* TCP/UDP/SCTP destination port. */
     ovs_be32 igmp_group_ip4;    /* IGMP group IPv4 address.
                                  * Keep last for BUILD_ASSERT_DECL below. */
+    OVS_FIELDS /* @Shahbaz: */
 };
 BUILD_ASSERT_DECL(sizeof(struct flow) % sizeof(uint64_t) == 0);
 BUILD_ASSERT_DECL(sizeof(struct flow_tnl) % sizeof(uint64_t) == 0);

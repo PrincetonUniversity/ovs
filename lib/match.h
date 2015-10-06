@@ -23,6 +23,14 @@
 
 struct ds;
 
+/* @Shahbaz: */
+void
+set_masked(const uint8_t *value_src,
+           const uint8_t *mask_src,
+           uint8_t *value_dst,
+           uint8_t *mask_dst,
+           size_t n_bytes);
+
 /* A flow classification match.
  *
  * Use one of the match_*() functions to initialize a "struct match".

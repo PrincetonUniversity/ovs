@@ -26,6 +26,8 @@
 #include "openflow/nicira-ext.h"
 #include "openvswitch/types.h"
 
+#include "p4/src/ovs_action_ofp_actions.h" /* @Shahbaz: */
+
 /* List of OVS abstracted actions.
  *
  * This macro is used directly only internally by this header, but the list is
@@ -118,7 +120,10 @@
     OFPACT(CLEAR_ACTIONS,   ofpact_null,        ofpact, "clear_actions") \
     OFPACT(WRITE_ACTIONS,   ofpact_nest,        ofpact, "write_actions") \
     OFPACT(WRITE_METADATA,  ofpact_metadata,    ofpact, "write_metadata") \
-    OFPACT(GOTO_TABLE,      ofpact_goto_table,  ofpact, "goto_table")
+    OFPACT(GOTO_TABLE,      ofpact_goto_table,  ofpact, "goto_table")   \
+    /* @Shahbaz: */                                                     \
+    OFPACT(DEPARSE,         ofpact_null,        ofpact, "deparse")      \
+    OVS_OFPACTS                                              
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
 enum OVS_PACKED_ENUM ofpact_type {
@@ -241,6 +246,8 @@ struct ofpact_enqueue {
     ofp_port_t port;
     uint32_t queue;
 };
+
+OVS_OFPACT_STRUCTS /* @Shahbaz: */
 
 /* OFPACT_OUTPUT_REG.
  *

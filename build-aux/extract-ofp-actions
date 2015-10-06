@@ -81,6 +81,9 @@ OFP_ACTIONS.C should point to lib/ofp-actions.c.\
     sys.exit(0)
 
 def extract_ofp_actions(fn, definitions):
+    # @Shahbaz:
+    global input_file
+    search_start_enum = True
     error_types = {}
 
     comments = []
@@ -95,138 +98,158 @@ def extract_ofp_actions(fn, definitions):
     open_file(fn)
 
     while True:
-        get_line()
-        if re.match('enum ofp_raw_action_type {', line):
-            break
+        # @Shahbaz:
+        if search_start_enum:
+            while True:
+                get_line()
+                if re.match('enum ofp_raw_action_type {', line):
+                    break
 
-    while True:
-        get_line()
-        if line.startswith('/*') or not line or line.isspace():
-            continue
-        elif re.match('}', line):
-            break
-
-        if not line.lstrip().startswith('/*'):
-            fatal("unexpected syntax between actions")
-
-        comment = line.lstrip()[2:].strip()
-        while not comment.endswith('*/'):
+        while True:
             get_line()
-            if line.startswith('/*') or not line or line.isspace():
-                fatal("unexpected syntax within action")
-            comment += ' %s' % line.lstrip('* \t').rstrip(' \t\r\n')
-        comment = re.sub('\[[^]]*\]', '', comment)
-        comment = comment[:-2].rstrip()
+            # @Shahbaz:
+            if (line.startswith('/*')
+                or line.startswith(' *')
+                or line.startswith('#')
+                or not line
+                or line.isspace()):
+                continue
+            elif re.match('}', line) or re.match('//}', line):
+                break
 
-        m = re.match('([^:]+):\s+(.*)$', comment)
-        if not m:
-            fatal("unexpected syntax between actions")
+            if not line.lstrip().startswith('/*'):
+                fatal("unexpected syntax between actions")
 
-        dsts = m.group(1)
-        argtype = m.group(2).strip().replace('.', '', 1)
+            comment = line.lstrip()[2:].strip()
+            while not comment.endswith('*/'):
+                get_line()
+                if line.startswith('/*') or not line or line.isspace():
+                    fatal("unexpected syntax within action")
+                comment += ' %s' % line.lstrip('* \t').rstrip(' \t\r\n')
+            comment = re.sub('\[[^]]*\]', '', comment)
+            comment = comment[:-2].rstrip()
 
-        get_line()
-        m = re.match(r'\s+(([A-Z]+)_RAW([0-9]*)_([A-Z0-9_]+)),?', line)
-        if not m:
-            fatal("syntax error expecting enum value")
-
-        enum = m.group(1)
-        if enum in names:
-            fatal("%s specified twice" % enum)
-
-        names.append(enum)
-
-        for dst in dsts.split(', '):
-            m = re.match(r'([A-Z]+)([0-9.]+)(\+|-[0-9.]+)?(?:\((\d+)\))(?: is deprecated \(([^)]+)\))?$', dst)
+            m = re.match('([^:]+):\s+(.*)$', comment)
             if not m:
-                fatal("%r: syntax error in destination" % dst)
-            vendor_name = m.group(1)
-            version1_name = m.group(2)
-            version2_name = m.group(3)
-            type_ = int(m.group(4))
-            deprecation = m.group(5)
+                fatal("unexpected syntax between actions")
 
-            if vendor_name not in vendor_map:
-                fatal("%s: unknown vendor" % vendor_name)
-            vendor = vendor_map[vendor_name][0]
+            dsts = m.group(1)
+            argtype = m.group(2).strip().replace('.', '', 1)
 
-            if version1_name not in version_map:
-                fatal("%s: unknown OpenFlow version" % version1_name)
-            v1 = version_map[version1_name]
+            get_line()
+            m = re.match(r'\s+(([A-Z]+)_RAW([0-9]*)_([A-Z0-9_]+)),?', line)
+            if not m:
+                fatal("syntax error expecting enum value")
 
-            if version2_name is None:
-                v2 = v1
-            elif version2_name == "+":
-                v2 = max(version_map.values())
-            elif version2_name[1:] not in version_map:
-                fatal("%s: unknown OpenFlow version" % version2_name[1:])
-            else:
-                v2 = version_map[version2_name[1:]]
+            enum = m.group(1)
+            if enum in names:
+                fatal("%s specified twice" % enum)
 
-            if v2 < v1:
-                fatal("%s%s: %s precedes %s"
-                      % (version1_name, version2_name,
-                         version2_name, version1_name))
+            names.append(enum)
 
-            for version in range(v1, v2 + 1):
-                domain[vendor].setdefault(type_, {})
-                if version in domain[vendor][type_]:
-                    v = domain[vendor][type_][version]
-                    msg = "%#x,%d in OF%s means both %s and %s" % (
-                        vendor, type_, version_reverse_map[version],
-                        v["enum"], enum)
-                    error("%s: %s." % (dst, msg))
-                    sys.stderr.write("%s:%d: %s: Here is the location "
-                                     "of the previous definition.\n"
-                                     % (v["file_name"], v["line_number"],
-                                        dst))
-                    n_errors += 1
+            for dst in dsts.split(', '):
+                m = re.match(r'([A-Z]+)([0-9.]+)(\+|-[0-9.]+)?(?:\((\d+)\))(?: is deprecated \(([^)]+)\))?$', dst)
+                if not m:
+                    fatal("%r: syntax error in destination" % dst)
+                vendor_name = m.group(1)
+                version1_name = m.group(2)
+                version2_name = m.group(3)
+                type_ = int(m.group(4))
+                deprecation = m.group(5)
+
+                if vendor_name not in vendor_map:
+                    fatal("%s: unknown vendor" % vendor_name)
+                vendor = vendor_map[vendor_name][0]
+
+                if version1_name not in version_map:
+                    fatal("%s: unknown OpenFlow version" % version1_name)
+                v1 = version_map[version1_name]
+
+                if version2_name is None:
+                    v2 = v1
+                elif version2_name == "+":
+                    v2 = max(version_map.values())
+                elif version2_name[1:] not in version_map:
+                    fatal("%s: unknown OpenFlow version" % version2_name[1:])
                 else:
-                    header_len = vendor_map[vendor_name][1]
+                    v2 = version_map[version2_name[1:]]
 
-                    base_argtype = argtype.replace(', ..', '', 1)
-                    if base_argtype in types:
-                        arg_align = types[base_argtype]['align']
-                        arg_len = types[base_argtype]['size']
-                        arg_ofs = round_up(header_len, arg_align)
-                        min_length = round_up(arg_ofs + arg_len,
-                                              OFP_ACTION_ALIGN)
-                    elif base_argtype == 'void':
-                        min_length = round_up(header_len, OFP_ACTION_ALIGN)
-                        arg_len = 0
-                        arg_ofs = 0
-                    elif re.match(r'struct [a-zA-Z0-9_]+$', base_argtype):
-                        min_length = 'sizeof(%s)' % base_argtype
-                        arg_structs.add(base_argtype)
-                        arg_len = 0
-                        arg_ofs = 0
-                        # should also emit OFP_ACTION_ALIGN assertion
+                if v2 < v1:
+                    fatal("%s%s: %s precedes %s"
+                          % (version1_name, version2_name,
+                             version2_name, version1_name))
+
+                for version in range(v1, v2 + 1):
+                    domain[vendor].setdefault(type_, {})
+                    if version in domain[vendor][type_]:
+                        v = domain[vendor][type_][version]
+                        msg = "%#x,%d in OF%s means both %s and %s" % (
+                            vendor, type_, version_reverse_map[version],
+                            v["enum"], enum)
+                        error("%s: %s." % (dst, msg))
+                        sys.stderr.write("%s:%d: %s: Here is the location "
+                                         "of the previous definition.\n"
+                                         % (v["file_name"], v["line_number"],
+                                            dst))
+                        n_errors += 1
                     else:
-                        fatal("bad argument type %s" % argtype)
+                        header_len = vendor_map[vendor_name][1]
 
-                    ellipsis = argtype != base_argtype
-                    if ellipsis:
-                        max_length = '65536 - OFP_ACTION_ALIGN'
-                    else:
-                        max_length = min_length
+                        base_argtype = argtype.replace(', ..', '', 1)
+                        if base_argtype in types:
+                            arg_align = types[base_argtype]['align']
+                            arg_len = types[base_argtype]['size']
+                            arg_ofs = round_up(header_len, arg_align)
+                            min_length = round_up(arg_ofs + arg_len,
+                                                  OFP_ACTION_ALIGN)
+                        elif base_argtype == 'void':
+                            min_length = round_up(header_len, OFP_ACTION_ALIGN)
+                            arg_len = 0
+                            arg_ofs = 0
+                        elif re.match(r'struct [a-zA-Z0-9_]+$', base_argtype):
+                            min_length = 'sizeof(%s)' % base_argtype
+                            arg_structs.add(base_argtype)
+                            arg_len = 0
+                            arg_ofs = 0
+                            # should also emit OFP_ACTION_ALIGN assertion
+                        else:
+                            fatal("bad argument type %s" % argtype)
 
-                    info = {"enum": enum,                 # 0
-                            "deprecation": deprecation,   # 1
-                            "file_name": file_name,       # 2
-                            "line_number": line_number,   # 3
-                            "min_length": min_length,     # 4
-                            "max_length": max_length,     # 5
-                            "arg_ofs": arg_ofs,           # 6
-                            "arg_len": arg_len,           # 7
-                            "base_argtype": base_argtype, # 8
-                            "version": version,           # 9
-                            "type": type_}                # 10
-                    domain[vendor][type_][version] = info
+                        ellipsis = argtype != base_argtype
+                        if ellipsis:
+                            max_length = '65536 - OFP_ACTION_ALIGN'
+                        else:
+                            max_length = min_length
 
-                    enums.setdefault(enum, [])
-                    enums[enum].append(info)
+                        info = {"enum": enum,                 # 0
+                                "deprecation": deprecation,   # 1
+                                "file_name": file_name,       # 2
+                                "line_number": line_number,   # 3
+                                "min_length": min_length,     # 4
+                                "max_length": max_length,     # 5
+                                "arg_ofs": arg_ofs,           # 6
+                                "arg_len": arg_len,           # 7
+                                "base_argtype": base_argtype, # 8
+                                "version": version,           # 9
+                                "type": type_}                # 10
+                        domain[vendor][type_][version] = info
 
-    input_file.close()
+                        enums.setdefault(enum, [])
+                        enums[enum].append(info)
+
+        input_file.close()
+
+        # @Shahbaz:
+        if search_start_enum:
+            try:
+                fn = "include/p4/src/ovs_action_type.h"
+                input_file = open(fn)
+                search_start_enum = False
+            except Exception, e:
+                print e
+                break
+        else:
+            break
 
     if n_errors:
         sys.exit(1)
@@ -374,4 +397,3 @@ if __name__ == '__main__':
     else:
         sys.stderr.write("invalid arguments; use --help for help\n")
         sys.exit(1)
-

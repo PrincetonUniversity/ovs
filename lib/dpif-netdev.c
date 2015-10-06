@@ -70,6 +70,8 @@
 #include "util.h"
 #include "openvswitch/vlog.h"
 
+#include "p4/src/ovs_action_dpif_netdev.h" /* @Shahbaz: */
+
 VLOG_DEFINE_THIS_MODULE(dpif_netdev);
 
 #define FLOW_DUMP_MAX_BATCH 50
@@ -3605,6 +3607,12 @@ dp_execute_cb(void *aux_, struct dp_packet **packets, int cnt,
 
         VLOG_WARN("Packet dropped. Max recirculation depth exceeded.");
         break;
+
+    OVS_EXECUTE_CB /* @Shahbaz: */
+                
+    /* @Shahbaz: */
+    case OVS_ACTION_ATTR_DEPARSE:
+        OVS_NOT_REACHED();
 
     case OVS_ACTION_ATTR_PUSH_VLAN:
     case OVS_ACTION_ATTR_POP_VLAN:

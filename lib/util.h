@@ -529,7 +529,11 @@ static inline ovs_be32 be32_prefix_mask(int plen)
 {
     return htonl((uint64_t)UINT32_MAX << (32 - plen));
 }
-
+
+/* @Shahbaz: */
+void ovs_apply_mask(const uint8_t *key, const uint8_t * header,
+                    const uint8_t *mask, uint8_t *res, size_t);
+
 bool is_all_zeros(const void *, size_t);
 bool is_all_ones(const void *, size_t);
 void bitwise_copy(const void *src, unsigned int src_len, unsigned int src_ofs,

@@ -31,6 +31,9 @@
 #include "unaligned.h"
 #include "util.h"
 
+#include "p4/src/ovs_match_packets.h" /* @Shahbaz: */
+#include "p4/src/ovs_action_packets.h" /* @Shahbaz: */
+
 struct dp_packet;
 struct ds;
 
@@ -930,6 +933,8 @@ struct vxlanhdr {
 
 #define VXLAN_FLAGS 0x08000000  /* struct vxlanhdr.vx_flags required value. */
 
+OVS_HEADERS /* @Shahbaz: */
+
 void format_ipv6_addr(char *addr_str, const struct in6_addr *addr);
 void print_ipv6_addr(struct ds *string, const struct in6_addr *addr);
 void print_ipv6_mapped(struct ds *string, const struct in6_addr *addr);
@@ -965,5 +970,11 @@ void compose_arp(struct dp_packet *, uint16_t arp_op,
                  const struct eth_addr arp_tha, bool broadcast,
                  ovs_be32 arp_spa, ovs_be32 arp_tpa);
 uint32_t packet_csum_pseudoheader(const struct ip_header *);
+
+OVS_HEADER_DECLS /* @Shahbaz: */
+
+OVS_FUNCTION_DECLS /* @Shahbaz: */
+        
+void deparse(struct dp_packet *packet);
 
 #endif /* packets.h */

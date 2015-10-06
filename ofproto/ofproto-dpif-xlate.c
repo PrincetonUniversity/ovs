@@ -59,6 +59,8 @@
 #include "tunnel.h"
 #include "openvswitch/vlog.h"
 
+#include "p4/src/ovs_action_ofproto_dpif_xlate.h" /* @Shahbaz: */
+
 COVERAGE_DEFINE(xlate_actions);
 COVERAGE_DEFINE(xlate_actions_oversize);
 COVERAGE_DEFINE(xlate_actions_too_many_output);
@@ -3687,6 +3689,8 @@ compose_dec_mpls_ttl_action(struct xlate_ctx *ctx)
     return true;
 }
 
+OVS_ACTION_HELPERS /* @Shahbaz: */
+
 static void
 xlate_output_action(struct xlate_ctx *ctx,
                     ofp_port_t port, uint16_t max_len, bool may_packet_in)
@@ -4098,7 +4102,13 @@ recirc_unroll_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         case OFPACT_DEBUG_RECIRC:
             break;
 
-            /* These need not be copied for restoration. */
+        OVS_RECIRC_UNROLL_ACTIONS /* @Shahbaz: */
+                    
+        /* @Shahbaz: */
+        case OFPACT_DEPARSE:
+            break;
+
+        /* These need not be copied for restoration. */
         case OFPACT_NOTE:
         case OFPACT_CONJUNCTION:
             continue;
@@ -4118,6 +4128,20 @@ recirc_unroll_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         CHECK_MPLS_RECIRCULATION();       \
     }
 
+OVS_COMPOSE_ACTIONS /* @Shahbaz: */
+
+
+/* @Shahbaz: */
+static void
+compose_deparse(struct xlate_ctx *ctx)
+{
+    bool use_masked = ctx->xbridge->support.masked_set_action;
+    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow,
+                                      ctx->odp_actions, ctx->wc,
+                                      use_masked);
+    nl_msg_put_flag(ctx->odp_actions, OVS_ACTION_ATTR_DEPARSE);
+}
+
 static void
 do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
                  struct xlate_ctx *ctx)
@@ -4136,6 +4160,8 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         const struct ofpact_metadata *metadata;
         const struct ofpact_set_field *set_field;
         const struct mf_field *mf;
+
+        OVS_DO_XLATE_ACTIONS_VARS /* @Shahbaz */
 
         if (ctx->exit) {
             /* Check if need to store the remaining actions for later
@@ -4485,6 +4511,13 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         case OFPACT_DEBUG_RECIRC:
             ctx_trigger_recirculation(ctx);
             a = ofpact_next(a);
+            break;
+
+        OVS_DO_XLATE_ACTIONS /* @Shahbaz: */
+                    
+        /* @Shahbaz: */
+        case OFPACT_DEPARSE:
+            compose_deparse(ctx);
             break;
         }
 

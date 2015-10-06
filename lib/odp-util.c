@@ -41,6 +41,9 @@
 #include "uuid.h"
 #include "openvswitch/vlog.h"
 
+#include "p4/src/ovs_match_odp_util.h" /* @Shahbaz: */
+#include "p4/src/ovs_action_odp_util.h" /* @Shahbaz: */
+
 VLOG_DEFINE_THIS_MODULE(odp_util);
 
 /* The interface between userspace and kernel uses an "OVS_*" prefix.
@@ -114,6 +117,12 @@ odp_action_len(uint16_t type)
     case OVS_ACTION_ATTR_SET_MASKED: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_SAMPLE: return ATTR_LEN_VARIABLE;
 
+    OVS_ACTION_LEN /* @Shahbaz: */
+    
+    /* @Shahbaz: */
+    case OVS_ACTION_ATTR_DEPARSE:
+        return 0;
+
     case OVS_ACTION_ATTR_UNSPEC:
     case __OVS_ACTION_ATTR_MAX:
         return ATTR_LEN_INVALID;
@@ -152,6 +161,8 @@ ovs_key_attr_to_string(enum ovs_key_attr attr, char *namebuf, size_t bufsize)
     case OVS_KEY_ATTR_MPLS: return "mpls";
     case OVS_KEY_ATTR_DP_HASH: return "dp_hash";
     case OVS_KEY_ATTR_RECIRC_ID: return "recirc_id";
+
+    OVS_KEY_ATTRS_TO_STRING /* @Shahbaz: */
 
     case __OVS_KEY_ATTR_MAX:
     default:
@@ -483,7 +494,7 @@ format_odp_tnl_push_header(struct ds *ds, struct ovs_action_push_tnl *data)
                       gnh->oam ? "oam," : "",
                       gnh->critical ? "crit," : "",
                       ntohl(get_16aligned_be32(&gnh->vni)) >> 8);
- 
+
         if (gnh->opt_len) {
             ds_put_cstr(ds, ",options(");
             format_geneve_opts(gnh->options, NULL, gnh->opt_len * 4,
@@ -622,6 +633,15 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
     case OVS_ACTION_ATTR_SAMPLE:
         format_odp_sample_action(ds, a);
         break;
+
+    OVS_FORMAT_ACTION /* @Shahbaz: */
+    
+    /* @Shahbaz: */
+    case OVS_ACTION_ATTR_DEPARSE:
+        ds_put_cstr(ds, "deparse");
+        break;
+    
+
     case OVS_ACTION_ATTR_UNSPEC:
     case __OVS_ACTION_ATTR_MAX:
     default:
@@ -1067,6 +1087,8 @@ parse_odp_action(const char *s, const struct simap *port_names,
         return 8;
     }
 
+    /* @Shahbaz: add logic for parsing actions here ... */
+
     {
         double percentage;
         int n = -1;
@@ -1211,6 +1233,7 @@ static const struct attr_len_tbl ovs_flow_key_attr_lens[OVS_KEY_ATTR_MAX + 1] = 
     [OVS_KEY_ATTR_ICMPV6]    = { .len = sizeof(struct ovs_key_icmpv6) },
     [OVS_KEY_ATTR_ARP]       = { .len = sizeof(struct ovs_key_arp) },
     [OVS_KEY_ATTR_ND]        = { .len = sizeof(struct ovs_key_nd) },
+    OVS_FLOW_KEY_ATTR_LENS /* @Shahbaz: */
 };
 
 /* Returns the correct length of the payload for a flow key attribute of the
@@ -1531,6 +1554,51 @@ format_eth(struct ds *ds, const char *name, const struct eth_addr key,
             eth_format_masked(key, mask, ds);
             ds_put_char(ds, ',');
         }
+    }
+}
+
+/* @Shahbaz: */
+static void
+format_be(struct ds *ds, const char *name, const uint8_t *key,
+             const uint8_t (*mask)[], size_t n_bytes, bool verbose)
+{
+    bool mask_empty = mask && is_all_zeros(*mask, n_bytes);
+
+    if (verbose || !mask_empty) {
+        int i;
+        bool mask_is_exact = mask && is_all_ones(*mask, n_bytes);
+        bool mask_full = !mask || mask_is_exact;
+
+        ds_put_format(ds, "%s=0x""%02"PRIx8, name, key[0]);
+        for (i = 1; i < n_bytes; i++) {
+            ds_put_format(ds, "%02"PRIx8, key[i]);
+        }
+
+        if (!mask_full) {
+            ds_put_format(ds, "/0x""%02"PRIx8, (*mask)[0]);
+            for (i = 1; i < n_bytes; i++) {
+                ds_put_format(ds, "%02"PRIx8, (*mask)[i]);
+            }
+        }
+        ds_put_char(ds, ',');
+    }
+}
+
+/* @Shahbaz: */
+static void
+format_be32(struct ds *ds, const char *name, ovs_be32 key,
+            const ovs_be32 *mask, bool verbose)
+{
+    bool mask_empty = mask && !*mask;
+
+    if (verbose || !mask_empty) {
+        bool mask_full = !mask || *mask == OVS_BE16_MAX;
+
+        ds_put_format(ds, "%s=%"PRIx32, name, ntohs(key));
+        if (!mask_full) { /* Partially masked. */
+            ds_put_format(ds, "/%#"PRIx32, ntohs(*mask));
+        }
+        ds_put_char(ds, ',');
     }
 }
 
@@ -2222,6 +2290,9 @@ format_odp_key_attr(const struct nlattr *a, const struct nlattr *ma,
         ds_chomp(ds, ',');
         break;
     }
+
+    OVS_FORMAT_ODP_KEY_ATTRS /* @Shahbaz: */
+
     case OVS_KEY_ATTR_UNSPEC:
     case __OVS_KEY_ATTR_MAX:
     default:
@@ -3143,6 +3214,8 @@ parse_odp_key_mask_attr(const char *s, const struct simap *port_names,
 
     SCAN_SINGLE_PORT("in_port(", uint32_t, OVS_KEY_ATTR_IN_PORT);
 
+    /* @Shahbaz: add logic for scanning here ... */
+
     SCAN_BEGIN("eth(", struct ovs_key_ethernet) {
         SCAN_FIELD("src=", eth, eth_src);
         SCAN_FIELD("dst=", eth, eth_dst);
@@ -3333,6 +3406,8 @@ static void put_arp_key(const struct ovs_key_arp *, struct flow *);
 static void get_nd_key(const struct flow *, struct ovs_key_nd *);
 static void put_nd_key(const struct ovs_key_nd *, struct flow *);
 
+OVS_SET_FUNCTION_DECLS /* @Shahbaz: */
+
 /* These share the same layout. */
 union ovs_key_tp {
     struct ovs_key_tcp tcp;
@@ -3371,6 +3446,8 @@ odp_flow_key_from_flow__(const struct odp_flow_key_parms *parms,
     if (export_mask || parms->odp_in_port != ODPP_NONE) {
         nl_msg_put_odp_port(buf, OVS_KEY_ATTR_IN_PORT, parms->odp_in_port);
     }
+
+    OVS_FLOW_KEY_FROM_FLOW /* @Shahbaz: */
 
     eth_key = nl_msg_put_unspec_uninit(buf, OVS_KEY_ATTR_ETHERNET,
                                        sizeof *eth_key);
@@ -4166,6 +4243,8 @@ odp_flow_key_to_flow__(const struct nlattr *key, size_t key_len,
         flow->in_port.odp_port = ODPP_NONE;
     }
 
+    OVS_FLOW_KEY_TO_FLOW /* @Shahbaz: */
+
     /* Ethernet header. */
     if (present_attrs & (UINT64_C(1) << OVS_KEY_ATTR_ETHERNET)) {
         const struct ovs_key_ethernet *eth_key;
@@ -4860,6 +4939,10 @@ commit_set_pkt_mark_action(const struct flow *flow, struct flow *base_flow,
     }
 }
 
+OVS_SET_FUNCTION_DEFS /* @Shahbaz: */
+
+OVS_COMMIT_ACTIONS /* @Shahbaz: */
+
 /* If any of the flow key data that ODP actions can modify are different in
  * 'base' and 'flow', appends ODP actions to 'odp_actions' that change the flow
  * key from 'base' into 'flow', and then changes 'base' the same way.  Does not
@@ -4883,6 +4966,8 @@ commit_odp_actions(const struct flow *flow, struct flow *base,
     commit_vlan_action(flow->vlan_tci, base, odp_actions, wc);
     commit_set_priority_action(flow, base, odp_actions, wc, use_masked);
     commit_set_pkt_mark_action(flow, base, odp_actions, wc, use_masked);
+
+    OVS_COMMIT_ODP_ACTIONS /* @Shahbaz: */
 
     return slow;
 }

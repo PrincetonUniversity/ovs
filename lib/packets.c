@@ -33,6 +33,9 @@
 #include "dp-packet.h"
 #include "unaligned.h"
 
+#include "p4/src/ovs_match_packets.h" /* @Shahbaz: */
+#include "p4/src/ovs_action_packets.h" /* @Shahbaz: */
+
 const struct in6_addr in6addr_exact = IN6ADDR_EXACT_INIT;
 const struct in6_addr in6addr_all_hosts = IN6ADDR_ALL_HOSTS_INIT;
 
@@ -1062,3 +1065,7 @@ packet_csum_pseudoheader(const struct ip_header *ip)
 
     return partial;
 }
+
+OVS_HEADER_DEFS /* @Shahbaz: */
+
+OVS_FUNCTION_DEFS /* @Shahbaz: */

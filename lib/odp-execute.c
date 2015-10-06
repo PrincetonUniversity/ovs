@@ -34,6 +34,9 @@
 #include "unaligned.h"
 #include "util.h"
 
+#include "p4/src/ovs_match_odp_execute.h" /* @Shahbaz: */
+#include "p4/src/ovs_action_odp_execute.h" /* @Shahbaz: */
+
 /* Masked copy of an ethernet address. 'src' is already properly masked. */
 static void
 ether_addr_copy_masked(struct eth_addr *dst, const struct eth_addr src,
@@ -223,6 +226,8 @@ odp_set_nd(struct dp_packet *packet, const struct ovs_key_nd *key,
     }
 }
 
+OVS_ODP_SET_ACTIONS /* @Shahbaz: */
+
 static void
 odp_execute_set_action(struct dp_packet *packet, const struct nlattr *a)
 {
@@ -318,6 +323,8 @@ odp_execute_set_action(struct dp_packet *packet, const struct nlattr *a)
         md->recirc_id = nl_attr_get_u32(a);
         break;
 
+    OVS_ODP_EXECUTE_SET_ACTION /* @Shahbaz: */
+
     case OVS_KEY_ATTR_UNSPEC:
     case OVS_KEY_ATTR_ENCAP:
     case OVS_KEY_ATTR_ETHERTYPE:
@@ -412,6 +419,8 @@ odp_execute_masked_set_action(struct dp_packet *packet,
             | (md->recirc_id & ~*get_mask(a, uint32_t));
         break;
 
+    OVS_ODP_EXECUTE_MASKED_SET_ACTION /* @Shahbaz: */
+
     case OVS_KEY_ATTR_TUNNEL:    /* Masked data not supported for tunnel. */
     case OVS_KEY_ATTR_UNSPEC:
     case OVS_KEY_ATTR_ENCAP:
@@ -486,6 +495,12 @@ requires_datapath_assistance(const struct nlattr *a)
     case OVS_ACTION_ATTR_HASH:
     case OVS_ACTION_ATTR_PUSH_MPLS:
     case OVS_ACTION_ATTR_POP_MPLS:
+        return false;
+
+    OVS_REQUIRES_DATAPATH_ASSISTANCE /* @Shahbaz: */
+                
+    /* @Shahbaz: */            
+    case OVS_ACTION_ATTR_DEPARSE:
         return false;
 
     case OVS_ACTION_ATTR_UNSPEC:
@@ -603,6 +618,15 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
                 /* We do not need to free the packets. odp_execute_sample() has
                  * stolen them*/
                 return;
+            }
+            break;
+
+        OVS_ODP_EXECUTE_ACTIONS /* @Shahbaz: */
+                    
+        /* @Shahbaz: */
+        case OVS_ACTION_ATTR_DEPARSE:
+            for (i = 0; i < cnt; i++) {
+                deparse(packets[i]);
             }
             break;
 

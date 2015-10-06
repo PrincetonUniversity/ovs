@@ -24,6 +24,8 @@
 #include "util.h"
 #include "netdev-dpdk.h"
 
+#include "p4/src/ovs_match_dp_packet.h" /* @Shahbaz: */
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -59,6 +61,8 @@ struct dp_packet {
     uint16_t l4_ofs;               /* Transport-level header offset,
                                       or UINT16_MAX. */
     struct pkt_metadata md;
+
+    OVS_HEADER_OFFSETS /* @Shahbaz: */
 };
 
 static inline void *dp_packet_data(const struct dp_packet *);
@@ -268,6 +272,8 @@ dp_packet_reset_offsets(struct dp_packet *b)
     b->l2_5_ofs = UINT16_MAX;
     b->l3_ofs = UINT16_MAX;
     b->l4_ofs = UINT16_MAX;
+
+    OVS_HEADER_RESET_OFFSETS /* @Shahbaz: */
 }
 
 static inline uint8_t
