@@ -298,10 +298,10 @@ enum ofp_raw_action_type {
     /* NX1.0+(255): void. */
     NXAST_RAW_DEBUG_RECIRC,
     
-#include "p4/src/ovs_action_type.h" /* @Shahbaz: */
-    
-    /* OF1.5+(31): void. */
+    /* OF1.5+(30): void. */
     OFPAT_RAW_DEPARSE,
+    
+#include "p4/src/ovs_action_type.h" /* @Shahbaz: */
 };
 
 /* OpenFlow actions are always a multiple of 8 bytes in length. */
