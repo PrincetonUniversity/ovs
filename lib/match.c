@@ -1010,6 +1010,8 @@ match_format(const struct match *match, struct ds *s, int priority)
         ofputil_format_port(f->actset_output, s);
         ds_put_char(s, ',');
     }
+    
+    OVS_MATCH_FORMAT /* @Shahbaz: */
 
     if (wc->masks.dl_type) {
         skip_type = true;
