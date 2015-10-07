@@ -120,8 +120,8 @@ odp_action_len(uint16_t type)
     OVS_ACTION_LEN /* @Shahbaz: */
     
     /* @Shahbaz: */
-    case OVS_ACTION_ATTR_DEPARSE:
-        return 0;
+    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE: return sizeof(ovs_be16);
+    case OVS_ACTION_ATTR_DEPARSE: return 0;
 
     case OVS_ACTION_ATTR_UNSPEC:
     case __OVS_ACTION_ATTR_MAX:
@@ -637,6 +637,10 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
     OVS_FORMAT_ACTION /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+        ds_put_cstr(ds, "modify_field_ethernet__ethertype");
+        // TODO: complete this.
+        break;
     case OVS_ACTION_ATTR_DEPARSE:
         ds_put_cstr(ds, "deparse");
         break;

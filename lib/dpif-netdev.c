@@ -3611,6 +3611,7 @@ dp_execute_cb(void *aux_, struct dp_packet **packets, int cnt,
     OVS_EXECUTE_CB /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OVS_ACTION_ATTR_DEPARSE:
         OVS_NOT_REACHED();
 

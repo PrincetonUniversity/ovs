@@ -4013,6 +4013,27 @@ xlate_action_set(struct xlate_ctx *ctx)
     ofpbuf_uninit(&action_list);
 }
 
+/* @Shahbaz: */
+static void
+xlate_modify_field_ethernet__etherType_action(struct xlate_ctx *ctx,
+                          const struct ofpact_modify_field_ethernet__etherType *a)
+{
+    bool use_masked = ctx->xbridge->support.masked_set_action;
+    struct flow *flow = &ctx->xin->flow;
+    struct flow *base_flow = &ctx->base_flow;
+    /* TODO: check if this is necessary. */
+    ctx->xout->slow |= commit_odp_actions(flow, base_flow,
+                                          ctx->odp_actions, ctx->wc,
+                                          use_masked);
+    
+    flow->ethernet_.hdr.ethernet__etherType = a->ethernet__etherType;
+    if (flow->ethernet_.hdr.ethernet__etherType != base_flow->ethernet_.hdr.ethernet__etherType)
+    {
+        nl_msg_put_be16(ctx->odp_actions, OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE, flow->ethernet_.hdr.ethernet__etherType);
+        base_flow->ethernet_.hdr.ethernet__etherType = flow->ethernet_.hdr.ethernet__etherType;
+    }
+}
+
 static void
 recirc_put_unroll_xlate(struct xlate_ctx *ctx)
 {
@@ -4105,6 +4126,8 @@ recirc_unroll_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         OVS_RECIRC_UNROLL_ACTIONS /* @Shahbaz: */
                     
         /* @Shahbaz: */
+        case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+        case OFPACT_MODIFY_FIELD:
         case OFPACT_DEPARSE:
             break;
 
@@ -4159,6 +4182,7 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         struct ofpact_controller *controller;
         const struct ofpact_metadata *metadata;
         const struct ofpact_set_field *set_field;
+        const struct ofpact_modify_field *modify_field; /* @Shahbaz: */
         const struct mf_field *mf;
 
         OVS_DO_XLATE_ACTIONS_VARS /* @Shahbaz */
@@ -4516,6 +4540,21 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         OVS_DO_XLATE_ACTIONS /* @Shahbaz: */
                     
         /* @Shahbaz: */
+        case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+            xlate_modify_field_ethernet__etherType_action(ctx, ofpact_get_MODIFY_FIELD_ETHERNET__ETHERTYPE(a));
+            break;
+            
+        case OFPACT_MODIFY_FIELD:
+            modify_field = ofpact_get_MODIFY_FIELD(a);
+            mf = modify_field->field;
+
+            mf_mask_field_and_prereqs(mf, wc);
+            if (mf_are_prereqs_ok(mf, flow)) {
+                mf_set_flow_value_masked(mf, &modify_field->value,
+                                         &modify_field->mask, flow);
+            }
+            break;
+            
         case OFPACT_DEPARSE:
             compose_deparse(ctx);
             break;

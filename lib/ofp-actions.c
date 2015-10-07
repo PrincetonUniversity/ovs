@@ -301,6 +301,12 @@ enum ofp_raw_action_type {
     /* OF1.5+(30): void. */
     OFPAT_RAW_DEPARSE,
     
+    /* OF1.5+(31): struct ofp_action_modify_field, ... */
+    OFPAT_RAW_MODIFY_FIELD,
+    
+    /* OF1.5+(32): struct ofp_action_modify_field_ethernet__etherType. */
+    OFPAT_RAW_MODIFY_FIELD_ETHERNET__ETHERTYPE,
+    
 #include "p4/src/ovs_action_type.h" /* @Shahbaz: */
 };
 
@@ -764,7 +770,188 @@ format_DEPARSE(const struct ofpact_null *a OVS_UNUSED, struct ds *s)
 {
     ds_put_cstr(s, "deparse");
 }
-
+
+/* @Shahbaz: */
+struct ofp_action_modify_field {
+    ovs_be16 type;
+    ovs_be16 len;
+
+    uint8_t pad[4];
+};
+OFP_ASSERT(sizeof(struct ofp_action_modify_field) == 8);
+
+static enum ofperr
+decode_ofpat_modify_field(const struct ofp_action_modify_field *oamf,
+                       bool may_mask, struct ofpbuf *ofpacts)
+{
+    struct ofpact_modify_field *mf;
+    enum ofperr error;
+    struct ofpbuf b;
+
+    mf = ofpact_put_MODIFY_FIELD(ofpacts);
+
+    ofpbuf_use_const(&b, oamf, ntohs(oamf->len));
+    ofpbuf_pull(&b, OBJECT_OFFSETOF(oamf, pad));
+    error = nx_pull_entry(&b, &mf->field, &mf->value,
+                          may_mask ? &mf->mask : NULL);
+    if (error) {
+        return (error == OFPERR_OFPBMC_BAD_MASK
+                ? OFPERR_OFPBAC_BAD_SET_MASK
+                : error);
+    }
+    if (!may_mask) {
+        memset(&mf->mask, 0xff, mf->field->n_bytes);
+    }
+
+    if (!is_all_zeros(b.data, b.size)) {
+        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
+    }
+
+    /* OpenFlow says specifically that one may not set OXM_OF_IN_PORT via
+     * Set-Field. */
+    if (mf->field->id == MFF_IN_PORT_OXM) {
+        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
+    }
+
+    /* oxm_length is now validated to be compatible with mf_value. */
+    if (!mf->field->writable) {
+        VLOG_WARN_RL(&rl, "destination field %s is not writable",
+                     mf->field->name);
+        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
+    }
+
+    return 0;
+}
+
+static enum ofperr
+decode_OFPAT_RAW_MODIFY_FIELD(const struct ofp_action_modify_field *oamf,
+                              struct ofpbuf *ofpacts)
+{
+    return decode_ofpat_modify_field(oamf, true, ofpacts);
+}
+
+static void
+encode_MODIFY_FIELD(const struct ofpact_modify_field *mf,
+                    enum ofp_version ofp_version, struct ofpbuf *out)
+{
+    if (ofp_version >= OFP15_VERSION) {
+        struct ofp_action_modify_field *oamf OVS_UNUSED;
+        size_t start_ofs = out->size;
+
+        oamf = put_OFPAT_MODIFY_FIELD(out);
+        out->size = out->size - sizeof oamf->pad;
+        nx_put_entry(out, mf->field->id, ofp_version, &mf->value, &mf->mask);
+        pad_ofpat(out, start_ofs);
+    }
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+modify_field_parse__(char *arg, struct ofpbuf *ofpacts,
+                     enum ofputil_protocol *usable_protocols)
+{
+    struct ofpact_modify_field *mf_ = ofpact_put_MODIFY_FIELD(ofpacts);
+    char *value;
+    char *delim;
+    char *key;
+    const struct mf_field *mf;
+    char *error;
+
+    value = arg;
+    delim = strstr(arg, "->");
+    if (!delim) {
+        return xasprintf("%s: missing `->'", arg);
+    }
+    if (strlen(delim) <= strlen("->")) {
+        return xasprintf("%s: missing field name following `->'", arg);
+    }
+
+    key = delim + strlen("->");
+    mf = mf_from_name(key);
+    if (!mf) {
+        return xasprintf("%s is not a valid OXM field name", key);
+    }
+    if (!mf->writable) {
+        return xasprintf("%s is read-only", key);
+    }
+    mf_->field = mf;
+    delim[0] = '\0';
+    error = mf_parse(mf, value, &mf_->value, &mf_->mask);
+    if (error) {
+        return error;
+    }
+
+    if (!mf_is_value_valid(mf, &mf_->value)) {
+        return xasprintf("%s is not a valid value for field %s", value, key);
+    }
+
+    *usable_protocols &= mf->usable_protocols_exact;
+    return NULL;
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+parse_MODIFY_FIELD(char *arg, struct ofpbuf *ofpacts,
+                   enum ofputil_protocol *usable_protocols)
+{
+    char *copy = xstrdup(arg);
+    char *error = modify_field_parse__(copy, ofpacts, usable_protocols);
+    free(copy);
+    return error;
+}
+
+static void
+format_MODIFY_FIELD(const struct ofpact_modify_field *a, struct ds *s)
+{   
+    ds_put_cstr(s, "modify_field:");
+    mf_format(a->field, &a->value, &a->mask, s);
+    ds_put_format(s, "->%s", a->field->name);
+}
+
+/* @Shahbaz: */
+struct ofp_action_modify_field_ethernet__etherType {
+    ovs_be16 type;
+    ovs_be16 len;
+    ovs_be16 ethernet__etherType;
+    uint8_t pad[2];
+};
+OFP_ASSERT(sizeof(struct ofp_action_modify_field_ethernet__etherType) == 8);
+
+static enum ofperr
+decode_OFPAT_RAW_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofp_action_modify_field_ethernet__etherType *a,
+                            struct ofpbuf *out)
+{
+    struct ofpact_modify_field_ethernet__etherType* oa = ofpact_put_MODIFY_FIELD_ETHERNET__ETHERTYPE(out);
+    oa->ethernet__etherType = a->ethernet__etherType;
+    return 0;
+}
+
+static void
+encode_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofpact_modify_field_ethernet__etherType *a,
+                    enum ofp_version ofp_version, struct ofpbuf *out)
+{
+    if (ofp_version >= OFP15_VERSION) {
+        struct ofp_action_modify_field_ethernet__etherType *oa;
+
+        oa = put_OFPAT_MODIFY_FIELD_ETHERNET__ETHERTYPE(out);
+        oa->ethernet__etherType = a->ethernet__etherType;
+    }
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+parse_MODIFY_FIELD_ETHERNET__ETHERTYPE(char *arg, struct ofpbuf *ofpacts,
+                   enum ofputil_protocol *usable_protocols OVS_UNUSED)
+{
+    struct ofpact_modify_field_ethernet__etherType* oa = ofpact_put_MODIFY_FIELD_ETHERNET__ETHERTYPE(ofpacts);
+    
+    return str_to_u16(arg, "modify_field_ethernet__etherType",
+                      &oa->ethernet__etherType);
+}
+
+static void
+format_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofpact_modify_field_ethernet__etherType *a, struct ds *s)
+{   
+    ds_put_format(s, "modify_field_ethernet__etherType:%#"PRIx16, a->ethernet__etherType);
+}
+
 /* Action structure for NXAST_OUTPUT_REG.
  *
  * Outputs to the OpenFlow port number written to src[ofs:ofs+nbits].
@@ -4909,6 +5096,8 @@ ofpact_is_set_or_move_action(const struct ofpact *a)
     OVS_IS_SET_OR_MOVE_ACTION /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+    case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
 
@@ -4983,7 +5172,10 @@ ofpact_is_allowed_in_actions_set(const struct ofpact *a)
         return false;
 
     OVS_IS_ALLOWED_IN_ACTIONS_SET /* @Shahbaz: */
-                
+    
+    /* @Shahbaz: */
+    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+    case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
 
@@ -5153,6 +5345,8 @@ ovs_instruction_type_from_ofpact_type(enum ofpact_type type)
     OVS_INSTRUCTION_TYPE_FROM_OFPACT_TYPE /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+    case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return OVSINST_OFPIT11_APPLY_ACTIONS;
     
@@ -5801,6 +5995,8 @@ ofpact_check__(enum ofputil_protocol *usable_protocols, struct ofpact *a,
     OVS_CHECK__ /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+    case OFPACT_MODIFY_FIELD: 
     case OFPACT_DEPARSE:
         return 0;
 
@@ -6188,6 +6384,8 @@ ofpact_outputs_to_port(const struct ofpact *ofpact, ofp_port_t port)
     OVS_OUTPUTS_TO_PORT /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+    case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
 

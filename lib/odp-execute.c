@@ -473,6 +473,15 @@ odp_execute_sample(void *dp, struct dp_packet *packet, bool steal,
                         nl_attr_get_size(subactions), dp_execute_action);
 }
 
+/* Shahbaz: */
+static void
+odp_execute_modify_field_ethernet__etherType(struct dp_packet *packet,
+                              ovs_be16 ethernet__etherType)
+{
+    struct ethernet__header *ethernet_ = &packet->ethernet_;
+    ethernet_->ethernet__etherType = ethernet__etherType;
+}
+
 static bool
 requires_datapath_assistance(const struct nlattr *a)
 {
@@ -500,6 +509,7 @@ requires_datapath_assistance(const struct nlattr *a)
     OVS_REQUIRES_DATAPATH_ASSISTANCE /* @Shahbaz: */
                 
     /* @Shahbaz: */            
+    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OVS_ACTION_ATTR_DEPARSE:
         return false;
 
@@ -624,6 +634,12 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
         OVS_ODP_EXECUTE_ACTIONS /* @Shahbaz: */
                     
         /* @Shahbaz: */
+        case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
+            for (i = 0; i < cnt; i++) {
+                odp_execute_modify_field_ethernet__etherType(packets[i], nl_attr_get_be16(a));
+            }
+            break;
+                    
         case OVS_ACTION_ATTR_DEPARSE:
             for (i = 0; i < cnt; i++) {
                 deparse(packets[i]);

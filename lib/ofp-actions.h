@@ -123,7 +123,9 @@
     OFPACT(GOTO_TABLE,      ofpact_goto_table,  ofpact, "goto_table")   \
     /* @Shahbaz: */                                                     \
     OFPACT(DEPARSE,         ofpact_null,        ofpact, "deparse")      \
-    OVS_OFPACTS                                              
+    OFPACT(MODIFY_FIELD,    ofpact_modify_field, ofpact, "modify_field") \
+    OFPACT(MODIFY_FIELD_ETHERNET__ETHERTYPE, ofpact_modify_field_ethernet__etherType, ofpact, "modify_field_ethernet__etherType") \
+    OVS_OFPACTS
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
 enum OVS_PACKED_ENUM ofpact_type {
@@ -406,6 +408,24 @@ struct ofpact_set_field {
     bool flow_has_vlan;   /* VLAN present at action validation time. */
     union mf_value value;
     union mf_value mask;
+};
+
+/* @Shahbaz: */
+/* OFPACT_MODIFY_FIELD.
+ */
+struct ofpact_modify_field {
+    struct ofpact ofpact;
+    const struct mf_field *field;
+    union mf_value value;
+    union mf_value mask;
+};
+
+/* @Shahbaz: */
+/* OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE.
+ */
+struct ofpact_modify_field_ethernet__etherType {
+    struct ofpact ofpact;
+    ovs_be16 ethernet__etherType;
 };
 
 /* OFPACT_PUSH_VLAN/MPLS/PBB

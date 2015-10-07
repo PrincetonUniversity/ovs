@@ -716,6 +716,7 @@ enum ovs_action_attr {
 	OVS_ACTION_ATTR_TUNNEL_POP,    /* u32 port number. */
 	OVS_ACTION_ATTR                /* @Shahbaz: */
         /* @Shahbaz: */
+        OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE,
         OVS_ACTION_ATTR_DEPARSE,
 #endif
 	__OVS_ACTION_ATTR_MAX,	      /* Nothing past this will be accepted
