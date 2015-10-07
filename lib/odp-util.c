@@ -637,10 +637,11 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
     OVS_FORMAT_ACTION /* @Shahbaz: */
     
     /* @Shahbaz: */
-    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
-        ds_put_cstr(ds, "modify_field_ethernet__ethertype");
-        // TODO: complete this.
+    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE: {
+        ovs_be16 ethernet__etherType = nl_attr_get_be16(a);
+        ds_put_format(ds, "modify_field_ethernet__etherType(0x%"PRIx16")", ethernet__etherType);
         break;
+    }
     case OVS_ACTION_ATTR_DEPARSE:
         ds_put_cstr(ds, "deparse");
         break;
