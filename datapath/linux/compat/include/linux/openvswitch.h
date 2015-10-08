@@ -627,6 +627,12 @@ struct ovs_action_hash {
 	uint32_t  hash_basis;
 };
 
+/* Shahbaz: */
+struct ovs_action_ethernet__etherType {
+    __be16 value;
+    __be16 mask;
+};
+
 #ifndef __KERNEL__
 #define TNL_PUSH_HEADER_SIZE 512
 

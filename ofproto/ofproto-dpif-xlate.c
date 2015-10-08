@@ -4015,21 +4015,42 @@ xlate_action_set(struct xlate_ctx *ctx)
 
 /* @Shahbaz: */
 static void
+apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
+{
+    size_t i;
+
+    for (i = 0; i < n; i++) {
+        dst[i] = (src[i] & mask[i]) | (dst[i] & ~mask[i]);
+    }
+}
+
+static void
 xlate_modify_field_ethernet__etherType_action(struct xlate_ctx *ctx,
-                          const struct ofpact_modify_field_ethernet__etherType *a)
+                          const struct ofpact_modify_field_ethernet__etherType *oa)
 {
     bool use_masked = ctx->xbridge->support.masked_set_action;
     struct flow *flow = &ctx->xin->flow;
+    struct flow *masks = &ctx->wc->masks;
     struct flow *base_flow = &ctx->base_flow;
     /* TODO: check if this is necessary. */
     ctx->xout->slow |= commit_odp_actions(flow, base_flow,
                                           ctx->odp_actions, ctx->wc,
                                           use_masked);
     
-    flow->ethernet_.hdr.ethernet__etherType = a->ethernet__etherType;
+    ovs_be16 tmp = flow->ethernet_.hdr.ethernet__etherType;
+    apply_mask((const uint8_t *) &oa->value, (const uint8_t *) &oa->mask,
+               (uint8_t *) &tmp, sizeof(tmp));
+    flow->ethernet_.hdr.ethernet__etherType = tmp;
+    
     if (flow->ethernet_.hdr.ethernet__etherType != base_flow->ethernet_.hdr.ethernet__etherType)
     {
-        nl_msg_put_be16(ctx->odp_actions, OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE, flow->ethernet_.hdr.ethernet__etherType);
+        struct ovs_action_ethernet__etherType *soa;
+
+        soa = nl_msg_put_unspec_uninit(ctx->odp_actions,
+                                       OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE,
+                                       sizeof *soa);
+        soa->value = flow->ethernet_.hdr.ethernet__etherType;
+        soa->mask = oa->mask;
         base_flow->ethernet_.hdr.ethernet__etherType = flow->ethernet_.hdr.ethernet__etherType;
     }
 }

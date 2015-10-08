@@ -425,7 +425,8 @@ struct ofpact_modify_field {
  */
 struct ofpact_modify_field_ethernet__etherType {
     struct ofpact ofpact;
-    ovs_be16 ethernet__etherType;
+    ovs_be16 value;
+    ovs_be16 mask;
 };
 
 /* OFPACT_PUSH_VLAN/MPLS/PBB

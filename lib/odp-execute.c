@@ -476,10 +476,10 @@ odp_execute_sample(void *dp, struct dp_packet *packet, bool steal,
 /* Shahbaz: */
 static void
 odp_execute_modify_field_ethernet__etherType(struct dp_packet *packet,
-                              ovs_be16 ethernet__etherType)
+                              const struct ovs_action_ethernet__etherType *soa)
 {
     struct ethernet__header *ethernet_ = &packet->ethernet_;
-    ethernet_->ethernet__etherType = ethernet__etherType;
+    ethernet_->ethernet__etherType = soa->value | (ethernet_->ethernet__etherType & ~soa->mask);
 }
 
 static bool
@@ -636,7 +636,7 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
         /* @Shahbaz: */
         case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
             for (i = 0; i < cnt; i++) {
-                odp_execute_modify_field_ethernet__etherType(packets[i], nl_attr_get_be16(a));
+                odp_execute_modify_field_ethernet__etherType(packets[i], nl_attr_get(a));
             }
             break;
                     

@@ -33,6 +33,7 @@
 #include "util.h"
 #include "openvswitch/vlog.h"
 
+#include <errno.h> /* Shahbaz: */
 #include "p4/src/ovs_action_ofp_actions.h" /* @Shahbaz: */
 
 VLOG_DEFINE_THIS_MODULE(ofp_actions);
@@ -910,8 +911,8 @@ format_MODIFY_FIELD(const struct ofpact_modify_field *a, struct ds *s)
 struct ofp_action_modify_field_ethernet__etherType {
     ovs_be16 type;
     ovs_be16 len;
-    ovs_be16 ethernet__etherType;
-    uint8_t pad[2];
+    ovs_be16 value;
+    ovs_be16 mask;
 };
 OFP_ASSERT(sizeof(struct ofp_action_modify_field_ethernet__etherType) == 8);
 
@@ -920,19 +921,56 @@ decode_OFPAT_RAW_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofp_action_modify
                             struct ofpbuf *out)
 {
     struct ofpact_modify_field_ethernet__etherType* oa = ofpact_put_MODIFY_FIELD_ETHERNET__ETHERTYPE(out);
-    oa->ethernet__etherType = a->ethernet__etherType;
+    oa->value = a->value;
+    oa->mask = a->mask;
     return 0;
 }
 
 static void
-encode_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofpact_modify_field_ethernet__etherType *a,
+encode_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofpact_modify_field_ethernet__etherType *oa,
                     enum ofp_version ofp_version, struct ofpbuf *out)
 {
     if (ofp_version >= OFP15_VERSION) {
-        struct ofp_action_modify_field_ethernet__etherType *oa;
+        struct ofp_action_modify_field_ethernet__etherType *a;
 
-        oa = put_OFPAT_MODIFY_FIELD_ETHERNET__ETHERTYPE(out);
-        oa->ethernet__etherType = a->ethernet__etherType;
+        a = put_OFPAT_MODIFY_FIELD_ETHERNET__ETHERTYPE(out);
+        a->value = oa->value;
+        a->mask = oa->mask;
+    }
+}
+
+static char *
+parse_from_integer_string(const char *s, const char *name, const uint32_t n_bytes,
+                          uint8_t *valuep, uint8_t *maskp)
+{
+    char *tail;
+    const char *err_str = "";
+    int err;
+
+    err = parse_int_string(s, valuep, n_bytes, &tail);
+    if (err || (*tail != '\0' && *tail != '/')) {
+        err_str = "value";
+        goto syntax_error;
+    }
+
+    if (*tail == '/') {
+        err = parse_int_string(tail + 1, maskp, n_bytes, &tail);
+        if (err || *tail != '\0') {
+            err_str = "mask";
+            goto syntax_error;
+        }
+    } else {
+        memset(maskp, 0xff, n_bytes);
+    }
+
+    return NULL;
+
+syntax_error:
+    if (err == ERANGE) {
+        return xasprintf("%s: %s too large for %u-byte field %s",
+                         s, err_str, n_bytes, name);
+    } else {
+        return xasprintf("%s: bad syntax for %s %s", s, name, err_str);
     }
 }
 
@@ -941,15 +979,17 @@ parse_MODIFY_FIELD_ETHERNET__ETHERTYPE(char *arg, struct ofpbuf *ofpacts,
                    enum ofputil_protocol *usable_protocols OVS_UNUSED)
 {
     struct ofpact_modify_field_ethernet__etherType* oa = ofpact_put_MODIFY_FIELD_ETHERNET__ETHERTYPE(ofpacts);
-    
-    return str_to_u16(arg, "modify_field_ethernet__etherType",
-                      &oa->ethernet__etherType);
+    return parse_from_integer_string(arg, "ethernet__etherType", sizeof(ovs_be16),
+                                     (uint8_t *) &oa->value, (uint8_t *) &oa->mask);
 }
 
 static void
-format_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofpact_modify_field_ethernet__etherType *a, struct ds *s)
+format_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofpact_modify_field_ethernet__etherType *oa, struct ds *s)
 {   
-    ds_put_format(s, "modify_field_ethernet__etherType:%#"PRIx16, a->ethernet__etherType);
+    ds_put_cstr(s, "modify_field_ethernet__etherType:");
+    ds_put_hex(s, &oa->value, sizeof(oa->value));
+    ds_put_char(s, '/');
+    ds_put_hex(s, &oa->mask, sizeof(oa->mask));
 }
 
 /* Action structure for NXAST_OUTPUT_REG.
