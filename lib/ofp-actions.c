@@ -305,6 +305,9 @@ enum ofp_raw_action_type {
     /* OF1.5+(31): struct ofp_action_modify_field, ... */
     OFPAT_RAW_MODIFY_FIELD,
     
+    /* OF1.5+(32): struct ofp_action_add_header, ... */
+    OFPAT_RAW_ADD_HEADER,
+    
 #include "p4/src/ovs_action_type.h" /* @Shahbaz: */
 };
 
@@ -815,8 +818,8 @@ struct ofp_action_modify_field {
 OFP_ASSERT(sizeof(struct ofp_action_modify_field) == 8);
 
 static enum ofperr
-decode_ofpat_modify_field(const struct ofp_action_modify_field *oamf,
-                       bool may_mask, struct ofpbuf *ofpacts)
+decode_ofpat_modify_field(const struct ofp_action_modify_field *a,
+                          bool may_mask, struct ofpbuf *ofpacts)
 {
     struct ofpact_modify_field *mf;
     enum ofperr error;
@@ -824,8 +827,8 @@ decode_ofpat_modify_field(const struct ofp_action_modify_field *oamf,
 
     mf = ofpact_put_MODIFY_FIELD(ofpacts);
 
-    ofpbuf_use_const(&b, oamf, ntohs(oamf->len));
-    ofpbuf_pull(&b, OBJECT_OFFSETOF(oamf, pad));
+    ofpbuf_use_const(&b, a, ntohs(a->len));
+    ofpbuf_pull(&b, OBJECT_OFFSETOF(a, pad));
     error = nx_pull_entry(&b, &mf->field, &mf->value,
                           may_mask ? &mf->mask : NULL);
     if (error) {
@@ -858,10 +861,10 @@ decode_ofpat_modify_field(const struct ofp_action_modify_field *oamf,
 }
 
 static enum ofperr
-decode_OFPAT_RAW_MODIFY_FIELD(const struct ofp_action_modify_field *oamf,
+decode_OFPAT_RAW_MODIFY_FIELD(const struct ofp_action_modify_field *a,
                               struct ofpbuf *ofpacts)
 {
-    return decode_ofpat_modify_field(oamf, true, ofpacts);
+    return decode_ofpat_modify_field(a, true, ofpacts);
 }
 
 static void
@@ -869,11 +872,11 @@ encode_MODIFY_FIELD(const struct ofpact_modify_field *mf,
                     enum ofp_version ofp_version, struct ofpbuf *out)
 {
     if (ofp_version >= OFP15_VERSION) {
-        struct ofp_action_modify_field *oamf OVS_UNUSED;
+        struct ofp_action_modify_field *a OVS_UNUSED;
         size_t start_ofs = out->size;
 
-        oamf = put_OFPAT_MODIFY_FIELD(out);
-        out->size = out->size - sizeof oamf->pad;
+        a = put_OFPAT_MODIFY_FIELD(out);
+        out->size = out->size - sizeof a->pad;
         nx_put_entry(out, mf->field->id, ofp_version, &mf->value, &mf->mask);
         pad_ofpat(out, start_ofs);
     }
@@ -933,11 +936,89 @@ parse_MODIFY_FIELD(char *arg, struct ofpbuf *ofpacts,
 }
 
 static void
-format_MODIFY_FIELD(const struct ofpact_modify_field *a, struct ds *s)
+format_MODIFY_FIELD(const struct ofpact_modify_field *mf, struct ds *s)
 {   
     ds_put_cstr(s, "modify_field:");
-    mf_format(a->field, &a->value, &a->mask, s);
-    ds_put_format(s, "->%s", a->field->name);
+    mf_format(mf->field, &mf->value, &mf->mask, s);
+    ds_put_format(s, "->%s", mf->field->name);
+}
+
+/* @Shahbaz: */
+struct ofp_action_add_header {
+    ovs_be16 type;
+    ovs_be16 len;
+
+    unsigned int n_bytes;
+    char name[8]; /* Start of user-defined data. */
+    /* Possibly followed by additional user-defined data. */
+};
+OFP_ASSERT(sizeof(struct ofp_action_add_header) == 16);
+
+static enum ofperr
+decode_OFPAT_RAW_ADD_HEADER(const struct ofp_action_add_header *a,
+                            struct ofpbuf *ofpacts)
+{
+    struct ofpact_add_header *ah;
+    unsigned int n_bytes;
+    
+    n_bytes = a->n_bytes;
+    ah = ofpact_put(ofpacts, OFPACT_ADD_HEADER,
+                    offsetof(struct ofpact_add_header, name) + n_bytes);
+    ah->n_bytes = n_bytes;
+    memcpy(ah->name, a->name, n_bytes);
+    return 0;
+}
+
+static void
+encode_ADD_HEADER(const struct ofpact_add_header *ah,
+                  enum ofp_version ofp_version, struct ofpbuf *out)
+{
+    if (ofp_version >= OFP15_VERSION) {
+        size_t start_ofs = out->size;
+        struct ofp_action_add_header *a;
+        unsigned int remainder;
+        unsigned int len;
+        
+        put_OFPAT_ADD_HEADER(out);
+        out->size = out->size - sizeof a->name;
+        
+        ofpbuf_put(out, ah->name, ah->n_bytes);
+        
+        len = out->size - start_ofs;
+        remainder = len % OFP_ACTION_ALIGN;
+        if (remainder) {
+            ofpbuf_put_zeros(out, OFP_ACTION_ALIGN - remainder);
+        }
+    
+        a = ofpbuf_at(out, start_ofs, sizeof *a);
+        a->len = htons(out->size - start_ofs);
+        a->n_bytes = ah->n_bytes;
+    }
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+parse_ADD_HEADER(char *arg, struct ofpbuf *ofpacts,
+                   enum ofputil_protocol *usable_protocols OVS_UNUSED)
+{
+    struct ofpact_add_header *ah;
+    
+    ah = ofpact_put_ADD_HEADER(ofpacts);
+    ah->n_bytes = strlen(arg);
+    ofpbuf_put(ofpacts, arg, ah->n_bytes);
+    
+    ofpact_update_len(ofpacts, &ah->ofpact);
+    return NULL;
+}
+
+static void
+format_ADD_HEADER(const struct ofpact_add_header *ah, struct ds *s)
+{   
+    size_t i;
+
+    ds_put_cstr(s, "add_header:");
+    for (i = 0; i < ah->n_bytes; i++) {
+        ds_put_char(s, ah->name[i]);
+    }
 }
 
 /* Action structure for NXAST_OUTPUT_REG.
@@ -5084,6 +5165,7 @@ ofpact_is_set_or_move_action(const struct ofpact *a)
     OVS_IS_SET_OR_MOVE_ACTION_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_ADD_HEADER:                 
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
@@ -5161,6 +5243,7 @@ ofpact_is_allowed_in_actions_set(const struct ofpact *a)
     OVS_IS_ALLOWED_IN_ACTIONS_SET_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OFPACT_ADD_HEADER:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
@@ -5331,6 +5414,7 @@ ovs_instruction_type_from_ofpact_type(enum ofpact_type type)
     OVS_INSTRUCTION_TYPE_FROM_OFPACT_TYPE_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_ADD_HEADER:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return OVSINST_OFPIT11_APPLY_ACTIONS;
@@ -5980,6 +6064,7 @@ ofpact_check__(enum ofputil_protocol *usable_protocols, struct ofpact *a,
     OVS_CHECK___CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_ADD_HEADER:
     case OFPACT_MODIFY_FIELD: 
     case OFPACT_DEPARSE:
         return 0;
@@ -6368,6 +6453,7 @@ ofpact_outputs_to_port(const struct ofpact *ofpact, ofp_port_t port)
     OVS_OUTPUTS_TO_PORT_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_ADD_HEADER:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;

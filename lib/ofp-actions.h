@@ -124,6 +124,7 @@
     /* @Shahbaz: */                                                     \
     OFPACT(DEPARSE,         ofpact_null,        ofpact, "deparse")      \
     OFPACT(MODIFY_FIELD,    ofpact_modify_field, ofpact, "modify_field") \
+    OFPACT(ADD_HEADER,      ofpact_add_header,  ofpact, "add_header") \
     OVS_OFPACTS
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
@@ -417,6 +418,15 @@ struct ofpact_modify_field {
     const struct mf_field *field;
     union mf_value value;
     union mf_value mask;
+};
+
+/* @Shahbaz: */
+/* OFPACT_ADD_HEADER.
+ */
+struct ofpact_add_header {
+    struct ofpact ofpact;
+    unsigned int n_bytes;
+    char name[];
 };
 
 /* OFPACT_PUSH_VLAN/MPLS/PBB
