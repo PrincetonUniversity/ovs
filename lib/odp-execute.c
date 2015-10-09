@@ -226,7 +226,7 @@ odp_set_nd(struct dp_packet *packet, const struct ovs_key_nd *key,
     }
 }
 
-OVS_ODP_SET_ACTIONS /* @Shahbaz: */
+OVS_ODP_SET_ACTION_FUNCS /* @Shahbaz: */
 
 static void
 odp_execute_set_action(struct dp_packet *packet, const struct nlattr *a)
@@ -323,7 +323,7 @@ odp_execute_set_action(struct dp_packet *packet, const struct nlattr *a)
         md->recirc_id = nl_attr_get_u32(a);
         break;
 
-    OVS_ODP_EXECUTE_SET_ACTION /* @Shahbaz: */
+    OVS_ODP_EXECUTE_SET_ACTION_CASES /* @Shahbaz: */
 
     case OVS_KEY_ATTR_UNSPEC:
     case OVS_KEY_ATTR_ENCAP:
@@ -419,7 +419,7 @@ odp_execute_masked_set_action(struct dp_packet *packet,
             | (md->recirc_id & ~*get_mask(a, uint32_t));
         break;
 
-    OVS_ODP_EXECUTE_MASKED_SET_ACTION /* @Shahbaz: */
+    OVS_ODP_EXECUTE_MASKED_SET_ACTION_CASES /* @Shahbaz: */
 
     case OVS_KEY_ATTR_TUNNEL:    /* Masked data not supported for tunnel. */
     case OVS_KEY_ATTR_UNSPEC:

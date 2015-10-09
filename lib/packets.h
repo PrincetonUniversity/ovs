@@ -933,7 +933,7 @@ struct vxlanhdr {
 
 #define VXLAN_FLAGS 0x08000000  /* struct vxlanhdr.vx_flags required value. */
 
-OVS_HEADERS /* @Shahbaz: */
+OVS_HDR_STRUCTS /* @Shahbaz: */
 
 void format_ipv6_addr(char *addr_str, const struct in6_addr *addr);
 void print_ipv6_addr(struct ds *string, const struct in6_addr *addr);
@@ -971,7 +971,7 @@ void compose_arp(struct dp_packet *, uint16_t arp_op,
                  ovs_be32 arp_spa, ovs_be32 arp_tpa);
 uint32_t packet_csum_pseudoheader(const struct ip_header *);
 
-OVS_HEADER_DECLS /* @Shahbaz: */
+OVS_HDR_DECLS /* @Shahbaz: */
 
 OVS_FUNC_DECLS /* @Shahbaz: */
         

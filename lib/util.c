@@ -1135,6 +1135,76 @@ is_all_ones(const void *p_, size_t n)
 }
 
 /* @Shahbaz: */
+uint64_t u24_to_u64(const uint8_t *value) {
+    uint64_t x = 0;
+
+    x |= value[0]; x <<= 16;
+    x |= value[1]; x <<= 8;
+    x |= value[2];
+
+    return x;
+}
+
+/* @Shahbaz: */
+uint64_t u40_to_u64(const uint8_t *value) {
+    uint64_t x = 0;
+
+    x |= value[0]; x <<= 32;
+    x |= value[1]; x <<= 24;
+    x |= value[2]; x <<= 16;
+    x |= value[3]; x <<= 8;
+    x |= value[4];
+
+    return x;
+}
+
+/* @Shahbaz: */
+uint64_t u48_to_u64(const uint8_t *value) {
+    uint64_t x = 0;
+    
+    x |= value[0]; x <<= 40;
+    x |= value[1]; x <<= 32;
+    x |= value[2]; x <<= 24;
+    x |= value[3]; x <<= 16;
+    x |= value[4]; x <<= 8;
+    x |= value[5];
+
+    return x;
+}
+
+/* @Shahbaz: */
+uint64_t u56_to_u64(const uint8_t *value) {
+    uint64_t x = 0;
+    
+    x |= value[0]; x <<= 48;
+    x |= value[1]; x <<= 40;
+    x |= value[2]; x <<= 32;
+    x |= value[3]; x <<= 24;
+    x |= value[4]; x <<= 16;
+    x |= value[5]; x <<= 8;
+    x |= value[6];
+
+    return x;
+}
+
+/* @Shahbaz: */
+uint64_t be64_to_u64(ovs_be64 value) {
+    const uint8_t *valuep = (const uint8_t *)&value;
+    uint64_t x = 0;
+    
+    x |= valuep[0]; x <<= 56;
+    x |= valuep[1]; x <<= 48;
+    x |= valuep[2]; x <<= 40;
+    x |= valuep[3]; x <<= 32;
+    x |= valuep[4]; x <<= 24;
+    x |= valuep[5]; x <<= 16;
+    x |= valuep[6]; x <<= 8;
+    x |= valuep[7];
+
+    return x;
+}
+
+/* @Shahbaz: */
 void ovs_apply_mask(const uint8_t *key, const uint8_t * header,
                     const uint8_t *mask, uint8_t *res, size_t n_bytes) {
     int i;

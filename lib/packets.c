@@ -1066,6 +1066,6 @@ packet_csum_pseudoheader(const struct ip_header *ip)
     return partial;
 }
 
-OVS_HEADER_DEFS /* @Shahbaz: */
+OVS_HDR_DEFS /* @Shahbaz: */
 
 OVS_FUNC_DEFS /* @Shahbaz: */

@@ -161,7 +161,7 @@ ovs_key_attr_to_string(enum ovs_key_attr attr, char *namebuf, size_t bufsize)
     case OVS_KEY_ATTR_DP_HASH: return "dp_hash";
     case OVS_KEY_ATTR_RECIRC_ID: return "recirc_id";
 
-    OVS_KEY_ATTRS_TO_STRING /* @Shahbaz: */
+    OVS_KEY_ATTRS_TO_STRING_CASES /* @Shahbaz: */
 
     case __OVS_KEY_ATTR_MAX:
     default:
@@ -1558,8 +1558,8 @@ format_eth(struct ds *ds, const char *name, const struct eth_addr key,
 
 /* @Shahbaz: */
 static void
-format_be(struct ds *ds, const char *name, const uint8_t *key,
-             const uint8_t (*mask)[], size_t n_bytes, bool verbose)
+format_data(struct ds *ds, const char *name, const uint8_t *key,
+            const uint8_t (*mask)[], size_t n_bytes, bool verbose)
 {
     bool mask_empty = mask && is_all_zeros(*mask, n_bytes);
 
@@ -2290,7 +2290,7 @@ format_odp_key_attr(const struct nlattr *a, const struct nlattr *ma,
         break;
     }
 
-    OVS_FORMAT_ODP_KEY_ATTRS /* @Shahbaz: */
+    OVS_FORMAT_ODP_KEY_ATTR_CASES /* @Shahbaz: */
 
     case OVS_KEY_ATTR_UNSPEC:
     case __OVS_KEY_ATTR_MAX:
@@ -3405,7 +3405,7 @@ static void put_arp_key(const struct ovs_key_arp *, struct flow *);
 static void get_nd_key(const struct flow *, struct ovs_key_nd *);
 static void put_nd_key(const struct ovs_key_nd *, struct flow *);
 
-OVS_SET_FUNCTION_DECLS /* @Shahbaz: */
+OVS_SET_FUNC_DECLS /* @Shahbaz: */
 
 /* These share the same layout. */
 union ovs_key_tp {
@@ -4938,9 +4938,9 @@ commit_set_pkt_mark_action(const struct flow *flow, struct flow *base_flow,
     }
 }
 
-OVS_SET_FUNCTION_DEFS /* @Shahbaz: */
+OVS_SET_FUNC_DEFS /* @Shahbaz: */
 
-OVS_COMMIT_ACTIONS /* @Shahbaz: */
+OVS_COMMIT_ACTION_FUNCS /* @Shahbaz: */
 
 /* If any of the flow key data that ODP actions can modify are different in
  * 'base' and 'flow', appends ODP actions to 'odp_actions' that change the flow
@@ -4966,7 +4966,7 @@ commit_odp_actions(const struct flow *flow, struct flow *base,
     commit_set_priority_action(flow, base, odp_actions, wc, use_masked);
     commit_set_pkt_mark_action(flow, base, odp_actions, wc, use_masked);
 
-    OVS_COMMIT_ODP_ACTIONS /* @Shahbaz: */
+    OVS_COMMIT_ODP_ACTIONS_FUNCS /* @Shahbaz: */
 
     return slow;
 }

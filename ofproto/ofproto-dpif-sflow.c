@@ -1027,7 +1027,7 @@ sflow_read_set_action(const struct nlattr *attr,
         }
         break;
 
-    OVS_SFLOW_READ_SET_ACTION /* @Shahbaz: */
+    OVS_SFLOW_READ_SET_ACTION_CASES /* @Shahbaz: */
 
     case OVS_KEY_ATTR_TCP_FLAGS:
     case OVS_KEY_ATTR_ICMP:

@@ -62,7 +62,7 @@ struct dp_packet {
                                       or UINT16_MAX. */
     struct pkt_metadata md;
 
-    OVS_HEADER_OFFSETS /* @Shahbaz: */
+    OVS_HDR_ATTRS /* @Shahbaz: */
 };
 
 static inline void *dp_packet_data(const struct dp_packet *);
@@ -273,7 +273,7 @@ dp_packet_reset_offsets(struct dp_packet *b)
     b->l3_ofs = UINT16_MAX;
     b->l4_ofs = UINT16_MAX;
 
-    OVS_HEADER_RESET_OFFSETS /* @Shahbaz: */
+    OVS_HDR_RESET_ATTRS /* @Shahbaz: */
 }
 
 static inline uint8_t

@@ -306,7 +306,7 @@ mf_is_all_wild(const struct mf_field *mf, const struct flow_wildcards *wc)
     case MFF_TCP_FLAGS:
         return !wc->masks.tcp_flags;
 
-    OVS_IS_ALL_WILD /* @Shahbaz: */
+    OVS_IS_ALL_WILD_CASES /* @Shahbaz: */
 
     case MFF_N_IDS:
     default:
@@ -532,7 +532,7 @@ mf_is_value_valid(const struct mf_field *mf, const union mf_value *value)
     case MFF_ND_TLL:
         return true;
 
-    OVS_IS_VALUE_VALID /* @Shahbaz: */
+    OVS_IS_VALUE_VALID_CASES /* @Shahbaz: */
 
     case MFF_IN_PORT_OXM:
     case MFF_ACTSET_OUTPUT: {
@@ -794,7 +794,7 @@ mf_get_value(const struct mf_field *mf, const struct flow *flow,
         value->ipv6 = flow->nd_target;
         break;
 
-    OVS_GET_VALUE  /* @Shahbaz: */
+    OVS_GET_VALUE_CASES  /* @Shahbaz: */
 
     case MFF_N_IDS:
     default:
@@ -1028,7 +1028,7 @@ mf_set_value(const struct mf_field *mf,
         match_set_nd_target(match, &value->ipv6);
         break;
 
-    OVS_SET_VLAUE /* @Shahbaz: */
+    OVS_SET_VLAUE_CASES /* @Shahbaz: */
 
     case MFF_N_IDS:
     default:
@@ -1317,7 +1317,7 @@ mf_set_flow_value(const struct mf_field *mf,
         flow->nd_target = value->ipv6;
         break;
 
-    OVS_SET_FLOW_VALUE /* @Shahbaz: */
+    OVS_SET_FLOW_VALUE_CASES /* @Shahbaz: */
 
     case MFF_N_IDS:
     default:
@@ -1607,7 +1607,7 @@ mf_set_wild(const struct mf_field *mf, struct match *match, char **err_str)
         memset(&match->flow.nd_target, 0, sizeof match->flow.nd_target);
         break;
 
-    OVS_SET_WILD /* @Shahbaz: */
+    OVS_SET_WILD_CASES /* @Shahbaz: */
 
     case MFF_N_IDS:
     default:
@@ -1807,7 +1807,7 @@ mf_set(const struct mf_field *mf,
         match_set_tcp_flags_masked(match, value->be16, mask->be16);
         break;
 
-    OVS_SET /* @Shahbaz: */
+    OVS_SET_CASES /* @Shahbaz: */
 
     case MFF_N_IDS:
     default:

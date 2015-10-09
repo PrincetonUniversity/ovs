@@ -531,6 +531,11 @@ static inline ovs_be32 be32_prefix_mask(int plen)
 }
 
 /* @Shahbaz: */
+uint64_t u24_to_u64(const uint8_t *);
+uint64_t u40_to_u64(const uint8_t *);
+uint64_t u48_to_u64(const uint8_t *);
+uint64_t u56_to_u64(const uint8_t *);
+uint64_t be64_to_u64(ovs_be64);
 void ovs_apply_mask(const uint8_t *key, const uint8_t * header,
                     const uint8_t *mask, uint8_t *res, size_t);
 

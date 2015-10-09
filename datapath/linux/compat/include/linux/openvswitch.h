@@ -462,7 +462,7 @@ struct ovs_key_nd {
 	__u8	nd_tll[ETH_ALEN];
 };
 
-OVS_KEYS /* @Shahbaz: */
+OVS_KEY_STRUCTS /* @Shahbaz: */
 
 /**
  * enum ovs_flow_attr - attributes for %OVS_FLOW_* commands.
