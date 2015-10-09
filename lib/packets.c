@@ -1068,4 +1068,4 @@ packet_csum_pseudoheader(const struct ip_header *ip)
 
 OVS_HEADER_DEFS /* @Shahbaz: */
 
-OVS_FUNCTION_DEFS /* @Shahbaz: */
+OVS_FUNC_DEFS /* @Shahbaz: */

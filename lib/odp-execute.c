@@ -473,14 +473,7 @@ odp_execute_sample(void *dp, struct dp_packet *packet, bool steal,
                         nl_attr_get_size(subactions), dp_execute_action);
 }
 
-/* Shahbaz: */
-static void
-odp_execute_modify_field_ethernet__etherType(struct dp_packet *packet,
-                              const struct ovs_action_ethernet__etherType *soa)
-{
-    struct ethernet__header *ethernet_ = &packet->ethernet_;
-    ethernet_->ethernet__etherType = soa->value | (ethernet_->ethernet__etherType & ~soa->mask);
-}
+OVS_ODP_EXECUTE_FUNCS /* Shahbaz: */
 
 static bool
 requires_datapath_assistance(const struct nlattr *a)
@@ -506,10 +499,9 @@ requires_datapath_assistance(const struct nlattr *a)
     case OVS_ACTION_ATTR_POP_MPLS:
         return false;
 
-    OVS_REQUIRES_DATAPATH_ASSISTANCE /* @Shahbaz: */
+    OVS_REQUIRES_DATAPATH_ASSISTANCE_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */            
-    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OVS_ACTION_ATTR_DEPARSE:
         return false;
 
@@ -631,15 +623,9 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
             }
             break;
 
-        OVS_ODP_EXECUTE_ACTIONS /* @Shahbaz: */
+        OVS_ODP_EXECUTE_ACTIONS_CASES /* @Shahbaz: */
                     
         /* @Shahbaz: */
-        case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
-            for (i = 0; i < cnt; i++) {
-                odp_execute_modify_field_ethernet__etherType(packets[i], nl_attr_get(a));
-            }
-            break;
-                    
         case OVS_ACTION_ATTR_DEPARSE:
             for (i = 0; i < cnt; i++) {
                 deparse(packets[i]);

@@ -305,9 +305,6 @@ enum ofp_raw_action_type {
     /* OF1.5+(31): struct ofp_action_modify_field, ... */
     OFPAT_RAW_MODIFY_FIELD,
     
-    /* OF1.5+(32): struct ofp_action_modify_field_ethernet__etherType. */
-    OFPAT_RAW_MODIFY_FIELD_ETHERNET__ETHERTYPE,
-    
 #include "p4/src/ovs_action_type.h" /* @Shahbaz: */
 };
 
@@ -737,9 +734,45 @@ format_ENQUEUE(const struct ofpact_enqueue *a, struct ds *s)
     ds_put_format(s, ":%"PRIu32, a->queue);
 }
 
-OVS_STRUCTS /* @Shahbaz: */
+/* @Shahbaz: */
+static char *
+parse_from_integer_string(const char *s, const char *name, const uint32_t n_bytes,
+                          uint8_t *valuep, uint8_t *maskp)
+{
+    char *tail;
+    const char *err_str = "";
+    int err;
 
-OVS_FUNCTIONS /* @Shahbaz: */
+    err = parse_int_string(s, valuep, n_bytes, &tail);
+    if (err || (*tail != '\0' && *tail != '/')) {
+        err_str = "value";
+        goto syntax_error;
+    }
+
+    if (*tail == '/') {
+        err = parse_int_string(tail + 1, maskp, n_bytes, &tail);
+        if (err || *tail != '\0') {
+            err_str = "mask";
+            goto syntax_error;
+        }
+    } else {
+        memset(maskp, 0xff, n_bytes);
+    }
+
+    return NULL;
+
+syntax_error:
+    if (err == ERANGE) {
+        return xasprintf("%s: %s too large for %u-byte field %s",
+                         s, err_str, n_bytes, name);
+    } else {
+        return xasprintf("%s: bad syntax for %s %s", s, name, err_str);
+    }
+}
+
+OVS_OFP_ACTION_STRUCTS /* @Shahbaz: */
+
+OVS_OFP_FUNCS /* @Shahbaz: */
 
 /* @Shahbaz: */
 static enum ofperr
@@ -905,91 +938,6 @@ format_MODIFY_FIELD(const struct ofpact_modify_field *a, struct ds *s)
     ds_put_cstr(s, "modify_field:");
     mf_format(a->field, &a->value, &a->mask, s);
     ds_put_format(s, "->%s", a->field->name);
-}
-
-/* @Shahbaz: */
-struct ofp_action_modify_field_ethernet__etherType {
-    ovs_be16 type;
-    ovs_be16 len;
-    ovs_be16 value;
-    ovs_be16 mask;
-};
-OFP_ASSERT(sizeof(struct ofp_action_modify_field_ethernet__etherType) == 8);
-
-static enum ofperr
-decode_OFPAT_RAW_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofp_action_modify_field_ethernet__etherType *a,
-                            struct ofpbuf *out)
-{
-    struct ofpact_modify_field_ethernet__etherType* oa = ofpact_put_MODIFY_FIELD_ETHERNET__ETHERTYPE(out);
-    oa->value = a->value;
-    oa->mask = a->mask;
-    return 0;
-}
-
-static void
-encode_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofpact_modify_field_ethernet__etherType *oa,
-                    enum ofp_version ofp_version, struct ofpbuf *out)
-{
-    if (ofp_version >= OFP15_VERSION) {
-        struct ofp_action_modify_field_ethernet__etherType *a;
-
-        a = put_OFPAT_MODIFY_FIELD_ETHERNET__ETHERTYPE(out);
-        a->value = oa->value;
-        a->mask = oa->mask;
-    }
-}
-
-static char *
-parse_from_integer_string(const char *s, const char *name, const uint32_t n_bytes,
-                          uint8_t *valuep, uint8_t *maskp)
-{
-    char *tail;
-    const char *err_str = "";
-    int err;
-
-    err = parse_int_string(s, valuep, n_bytes, &tail);
-    if (err || (*tail != '\0' && *tail != '/')) {
-        err_str = "value";
-        goto syntax_error;
-    }
-
-    if (*tail == '/') {
-        err = parse_int_string(tail + 1, maskp, n_bytes, &tail);
-        if (err || *tail != '\0') {
-            err_str = "mask";
-            goto syntax_error;
-        }
-    } else {
-        memset(maskp, 0xff, n_bytes);
-    }
-
-    return NULL;
-
-syntax_error:
-    if (err == ERANGE) {
-        return xasprintf("%s: %s too large for %u-byte field %s",
-                         s, err_str, n_bytes, name);
-    } else {
-        return xasprintf("%s: bad syntax for %s %s", s, name, err_str);
-    }
-}
-
-static char * OVS_WARN_UNUSED_RESULT
-parse_MODIFY_FIELD_ETHERNET__ETHERTYPE(char *arg, struct ofpbuf *ofpacts,
-                   enum ofputil_protocol *usable_protocols OVS_UNUSED)
-{
-    struct ofpact_modify_field_ethernet__etherType* oa = ofpact_put_MODIFY_FIELD_ETHERNET__ETHERTYPE(ofpacts);
-    return parse_from_integer_string(arg, "ethernet__etherType", sizeof(ovs_be16),
-                                     (uint8_t *) &oa->value, (uint8_t *) &oa->mask);
-}
-
-static void
-format_MODIFY_FIELD_ETHERNET__ETHERTYPE(const struct ofpact_modify_field_ethernet__etherType *oa, struct ds *s)
-{   
-    ds_put_cstr(s, "modify_field_ethernet__etherType:");
-    ds_put_hex(s, &oa->value, sizeof(oa->value));
-    ds_put_char(s, '/');
-    ds_put_hex(s, &oa->mask, sizeof(oa->mask));
 }
 
 /* Action structure for NXAST_OUTPUT_REG.
@@ -5133,10 +5081,9 @@ ofpact_is_set_or_move_action(const struct ofpact *a)
     case OFPACT_DEBUG_RECIRC:
         return false;
 
-    OVS_IS_SET_OR_MOVE_ACTION /* @Shahbaz: */
+    OVS_IS_SET_OR_MOVE_ACTION_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
-    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
@@ -5211,10 +5158,9 @@ ofpact_is_allowed_in_actions_set(const struct ofpact *a)
     case OFPACT_WRITE_METADATA:
         return false;
 
-    OVS_IS_ALLOWED_IN_ACTIONS_SET /* @Shahbaz: */
+    OVS_IS_ALLOWED_IN_ACTIONS_SET_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
-    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
@@ -5382,10 +5328,9 @@ ovs_instruction_type_from_ofpact_type(enum ofpact_type type)
     case OFPACT_GOTO_TABLE:
         return OVSINST_OFPIT11_GOTO_TABLE;
 
-    OVS_INSTRUCTION_TYPE_FROM_OFPACT_TYPE /* @Shahbaz: */
+    OVS_INSTRUCTION_TYPE_FROM_OFPACT_TYPE_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
-    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return OVSINST_OFPIT11_APPLY_ACTIONS;
@@ -6032,10 +5977,9 @@ ofpact_check__(enum ofputil_protocol *usable_protocols, struct ofpact *a,
     case OFPACT_DEBUG_RECIRC:
         return 0;
 
-    OVS_CHECK__ /* @Shahbaz: */
+    OVS_CHECK___CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
-    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OFPACT_MODIFY_FIELD: 
     case OFPACT_DEPARSE:
         return 0;
@@ -6421,10 +6365,9 @@ ofpact_outputs_to_port(const struct ofpact *ofpact, ofp_port_t port)
     case OFPACT_CONTROLLER:
         return port == OFPP_CONTROLLER;
 
-    OVS_OUTPUTS_TO_PORT /* @Shahbaz: */
+    OVS_OUTPUTS_TO_PORT_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
-    case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;

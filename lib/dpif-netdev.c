@@ -3608,10 +3608,9 @@ dp_execute_cb(void *aux_, struct dp_packet **packets, int cnt,
         VLOG_WARN("Packet dropped. Max recirculation depth exceeded.");
         break;
 
-    OVS_EXECUTE_CB /* @Shahbaz: */
+    OVS_EXECUTE_CB_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
-    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
     case OVS_ACTION_ATTR_DEPARSE:
         OVS_NOT_REACHED();
 

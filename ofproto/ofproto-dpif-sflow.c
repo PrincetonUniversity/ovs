@@ -1172,10 +1172,9 @@ dpif_sflow_read_actions(const struct flow *flow,
 	    break;
 	}
 
-        OVS_SFLOW_READ_ACTIONS /* @Shahbaz: */
+        OVS_SFLOW_READ_ACTIONS_CASES /* @Shahbaz: */
         
         /* @Shahbaz: */
-        case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE:
         case OVS_ACTION_ATTR_DEPARSE:
             break;
 

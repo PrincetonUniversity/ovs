@@ -973,7 +973,7 @@ uint32_t packet_csum_pseudoheader(const struct ip_header *);
 
 OVS_HEADER_DECLS /* @Shahbaz: */
 
-OVS_FUNCTION_DECLS /* @Shahbaz: */
+OVS_FUNC_DECLS /* @Shahbaz: */
         
 void deparse(struct dp_packet *packet);
 

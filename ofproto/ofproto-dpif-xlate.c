@@ -3689,7 +3689,7 @@ compose_dec_mpls_ttl_action(struct xlate_ctx *ctx)
     return true;
 }
 
-OVS_ACTION_HELPERS /* @Shahbaz: */
+OVS_ACTION_HELPER_FUNCS /* @Shahbaz: */
 
 static void
 xlate_output_action(struct xlate_ctx *ctx,
@@ -4013,48 +4013,6 @@ xlate_action_set(struct xlate_ctx *ctx)
     ofpbuf_uninit(&action_list);
 }
 
-/* @Shahbaz: */
-static void
-apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
-{
-    size_t i;
-
-    for (i = 0; i < n; i++) {
-        dst[i] = (src[i] & mask[i]) | (dst[i] & ~mask[i]);
-    }
-}
-
-static void
-xlate_modify_field_ethernet__etherType_action(struct xlate_ctx *ctx,
-                          const struct ofpact_modify_field_ethernet__etherType *oa)
-{
-    bool use_masked = ctx->xbridge->support.masked_set_action;
-    struct flow *flow = &ctx->xin->flow;
-    struct flow *masks = &ctx->wc->masks;
-    struct flow *base_flow = &ctx->base_flow;
-    /* TODO: check if this is necessary. */
-    ctx->xout->slow |= commit_odp_actions(flow, base_flow,
-                                          ctx->odp_actions, ctx->wc,
-                                          use_masked);
-    
-    ovs_be16 tmp = flow->ethernet_.hdr.ethernet__etherType;
-    apply_mask((const uint8_t *) &oa->value, (const uint8_t *) &oa->mask,
-               (uint8_t *) &tmp, sizeof(tmp));
-    flow->ethernet_.hdr.ethernet__etherType = tmp;
-    
-    if (flow->ethernet_.hdr.ethernet__etherType != base_flow->ethernet_.hdr.ethernet__etherType)
-    {
-        struct ovs_action_ethernet__etherType *soa;
-
-        soa = nl_msg_put_unspec_uninit(ctx->odp_actions,
-                                       OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE,
-                                       sizeof *soa);
-        soa->value = flow->ethernet_.hdr.ethernet__etherType;
-        soa->mask = oa->mask;
-        base_flow->ethernet_.hdr.ethernet__etherType = flow->ethernet_.hdr.ethernet__etherType;
-    }
-}
-
 static void
 recirc_put_unroll_xlate(struct xlate_ctx *ctx)
 {
@@ -4144,10 +4102,9 @@ recirc_unroll_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         case OFPACT_DEBUG_RECIRC:
             break;
 
-        OVS_RECIRC_UNROLL_ACTIONS /* @Shahbaz: */
+        OVS_RECIRC_UNROLL_ACTIONS_CASES /* @Shahbaz: */
                     
         /* @Shahbaz: */
-        case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
         case OFPACT_MODIFY_FIELD:
         case OFPACT_DEPARSE:
             break;
@@ -4172,8 +4129,18 @@ recirc_unroll_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         CHECK_MPLS_RECIRCULATION();       \
     }
 
-OVS_COMPOSE_ACTIONS /* @Shahbaz: */
+/* @Shahbaz: */
+static void
+apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
+{
+    size_t i;
 
+    for (i = 0; i < n; i++) {
+        dst[i] = (src[i] & mask[i]) | (dst[i] & ~mask[i]);
+    }
+}
+
+OVS_COMPOSE_AND_XLATE_FUNCS /* @Shahbaz: */
 
 /* @Shahbaz: */
 static void
@@ -4205,8 +4172,6 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         const struct ofpact_set_field *set_field;
         const struct ofpact_modify_field *modify_field; /* @Shahbaz: */
         const struct mf_field *mf;
-
-        OVS_DO_XLATE_ACTIONS_VARS /* @Shahbaz */
 
         if (ctx->exit) {
             /* Check if need to store the remaining actions for later
@@ -4558,13 +4523,9 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
             a = ofpact_next(a);
             break;
 
-        OVS_DO_XLATE_ACTIONS /* @Shahbaz: */
+        OVS_DO_XLATE_ACTIONS_CASES /* @Shahbaz: */
                     
         /* @Shahbaz: */
-        case OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE:
-            xlate_modify_field_ethernet__etherType_action(ctx, ofpact_get_MODIFY_FIELD_ETHERNET__ETHERTYPE(a));
-            break;
-            
         case OFPACT_MODIFY_FIELD:
             modify_field = ofpact_get_MODIFY_FIELD(a);
             mf = modify_field->field;

@@ -25,7 +25,7 @@ TYPES = {"u8":       (1,   False),
 # @Shahbaz:
 def gen_custom_types():
     for i in xrange(128):
-        TYPES["be"+str(8*i)] = (i,   False)
+        TYPES[str(8*i)+"b"] = (i,   False)
 gen_custom_types()
 
 FORMATTING = {"decimal":            ("MFS_DECIMAL",      1,   8),

@@ -627,11 +627,7 @@ struct ovs_action_hash {
 	uint32_t  hash_basis;
 };
 
-/* Shahbaz: */
-struct ovs_action_ethernet__etherType {
-    __be16 value;
-    __be16 mask;
-};
+OVS_ACTION_STRUCTS /* Shahbaz: */
 
 #ifndef __KERNEL__
 #define TNL_PUSH_HEADER_SIZE 512
@@ -720,9 +716,8 @@ enum ovs_action_attr {
 #ifndef __KERNEL__
 	OVS_ACTION_ATTR_TUNNEL_PUSH,   /* struct ovs_action_push_tnl*/
 	OVS_ACTION_ATTR_TUNNEL_POP,    /* u32 port number. */
-	OVS_ACTION_ATTR                /* @Shahbaz: */
+	OVS_ACTION_ATTRS               /* @Shahbaz: */
         /* @Shahbaz: */
-        OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE,
         OVS_ACTION_ATTR_DEPARSE,
 #endif
 	__OVS_ACTION_ATTR_MAX,	      /* Nothing past this will be accepted

@@ -124,7 +124,6 @@
     /* @Shahbaz: */                                                     \
     OFPACT(DEPARSE,         ofpact_null,        ofpact, "deparse")      \
     OFPACT(MODIFY_FIELD,    ofpact_modify_field, ofpact, "modify_field") \
-    OFPACT(MODIFY_FIELD_ETHERNET__ETHERTYPE, ofpact_modify_field_ethernet__etherType, ofpact, "modify_field_ethernet__etherType") \
     OVS_OFPACTS
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
@@ -418,15 +417,6 @@ struct ofpact_modify_field {
     const struct mf_field *field;
     union mf_value value;
     union mf_value mask;
-};
-
-/* @Shahbaz: */
-/* OFPACT_MODIFY_FIELD_ETHERNET__ETHERTYPE.
- */
-struct ofpact_modify_field_ethernet__etherType {
-    struct ofpact ofpact;
-    ovs_be16 value;
-    ovs_be16 mask;
 };
 
 /* OFPACT_PUSH_VLAN/MPLS/PBB

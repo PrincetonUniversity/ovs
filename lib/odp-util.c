@@ -117,10 +117,9 @@ odp_action_len(uint16_t type)
     case OVS_ACTION_ATTR_SET_MASKED: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_SAMPLE: return ATTR_LEN_VARIABLE;
 
-    OVS_ACTION_LEN /* @Shahbaz: */
+    OVS_ACTION_LEN_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
-    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE: return sizeof(struct ovs_action_ethernet__etherType);
     case OVS_ACTION_ATTR_DEPARSE: return 0;
 
     case OVS_ACTION_ATTR_UNSPEC:
@@ -634,19 +633,9 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         format_odp_sample_action(ds, a);
         break;
 
-    OVS_FORMAT_ACTION /* @Shahbaz: */
+    OVS_FORMAT_ODP_ACTION_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
-    case OVS_ACTION_ATTR_MODIFY_FIELD_ETHERNET__ETHERTYPE: {
-        const struct ovs_action_ethernet__etherType *soa = nl_attr_get(a);
-        
-        ds_put_cstr(ds, "modify_field_ethernet__etherType(");
-        ds_put_hex(ds, &soa->value, sizeof(soa->value));
-        ds_put_char(ds, '/');
-        ds_put_hex(ds, &soa->mask, sizeof(soa->mask));
-        ds_put_char(ds, ')');
-        break;
-    }
     case OVS_ACTION_ATTR_DEPARSE:
         ds_put_cstr(ds, "deparse");
         break;
