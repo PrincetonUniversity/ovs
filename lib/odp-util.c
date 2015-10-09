@@ -1558,7 +1558,7 @@ format_eth(struct ds *ds, const char *name, const struct eth_addr key,
 
 /* @Shahbaz: */
 static void
-format_data(struct ds *ds, const char *name, const uint8_t *key,
+format_custom(struct ds *ds, const char *name, const uint8_t *key,
             const uint8_t (*mask)[], size_t n_bytes, bool verbose)
 {
     bool mask_empty = mask && is_all_zeros(*mask, n_bytes);

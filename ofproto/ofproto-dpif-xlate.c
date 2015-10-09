@@ -4140,6 +4140,7 @@ apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
     }
 }
 
+
 OVS_COMPOSE_AND_XLATE_FUNCS /* @Shahbaz: */
 
 /* @Shahbaz: */
