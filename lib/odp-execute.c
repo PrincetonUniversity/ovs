@@ -513,6 +513,8 @@ requires_datapath_assistance(const struct nlattr *a)
     OVS_REQUIRES_DATAPATH_ASSISTANCE_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */            
+    case OVS_ACTION_ATTR_ADD_HEADER:
+    case OVS_ACTION_ATTR_REMOVE_HEADER:
     case OVS_ACTION_ATTR_DEPARSE:
         return false;
 
@@ -636,6 +638,22 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
 
         OVS_ODP_EXECUTE_ACTIONS_CASES /* @Shahbaz: */
                     
+        /* @Shahbaz: */
+        case OVS_ACTION_ATTR_ADD_HEADER: {
+            for (i = 0; i < cnt; i++) {    
+                add_header(packets[i], nl_attr_get(a));
+            }
+            break;
+        }
+        
+        /* @Shahbaz: */
+        case OVS_ACTION_ATTR_REMOVE_HEADER: {
+            for (i = 0; i < cnt; i++) {    
+                remove_header(packets[i], nl_attr_get(a));
+            }
+            break;
+        }
+        
         /* @Shahbaz: */
         case OVS_ACTION_ATTR_DEPARSE:
             for (i = 0; i < cnt; i++) {

@@ -125,6 +125,7 @@
     OFPACT(DEPARSE,         ofpact_null,        ofpact, "deparse")      \
     OFPACT(MODIFY_FIELD,    ofpact_modify_field, ofpact, "modify_field") \
     OFPACT(ADD_HEADER,      ofpact_add_header,  ofpact, "add_header") \
+    OFPACT(REMOVE_HEADER,   ofpact_remove_header, ofpact, "remove_header") \
     OVS_OFPACTS
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
@@ -424,6 +425,15 @@ struct ofpact_modify_field {
 /* OFPACT_ADD_HEADER.
  */
 struct ofpact_add_header {
+    struct ofpact ofpact;
+    unsigned int n_bytes;
+    char name[];
+};
+
+/* @Shahbaz: */
+/* OFPACT_REMOVE_HEADER.
+ */
+struct ofpact_remove_header {
     struct ofpact ofpact;
     unsigned int n_bytes;
     char name[];

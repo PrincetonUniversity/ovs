@@ -1069,3 +1069,50 @@ packet_csum_pseudoheader(const struct ip_header *ip)
 OVS_HDR_DEFS /* @Shahbaz: */
 
 OVS_FUNC_DEFS /* @Shahbaz: */
+       
+/* @Shahbaz: */
+void add_header(struct dp_packet *packet, const struct nlattr *a)
+{
+    int key = nl_attr_type(a);
+    
+    switch((enum ovs_key_attr) key) {
+    OVS_ADD_HEADER_CASES
+    }
+}
+
+/* @Shahbaz: */
+void remove_header(struct dp_packet *packet, const struct nlattr *a)
+{
+    int key = nl_attr_type(a);
+    
+    switch((enum ovs_key_attr) key) {
+    OVS_REMOVE_HEADER_CASES
+    }
+}
+
+/* @Shahbaz: */
+void deparse(struct dp_packet *packet)
+{
+    char *data = dp_packet_data(packet);
+    
+    /* get new payload offset */
+    uint16_t new_payload_ofs = 0;
+    
+    OVS_DEPARSE_NEW_PAYLOAD_OFS
+    
+    /* shift payload */ 
+    if (packet->payload_ofs != new_payload_ofs) { 
+        if (dp_packet_get_allocated(packet) >= (new_payload_ofs + (dp_packet_size(packet) - packet->payload_ofs))) { 
+            memmove(data + new_payload_ofs, data + packet->payload_ofs, dp_packet_size(packet) - packet->payload_ofs); 
+        } 
+        else { /* error */ } 
+        
+        dp_packet_set_size(packet, dp_packet_size(packet) + (new_payload_ofs - packet->payload_ofs)); 
+        packet->payload_ofs = new_payload_ofs; 
+    } 
+    
+    /* write headers */
+    uint16_t run_ofs = 0; 
+
+    OVS_DEPARSE_WRITE_HEADERS                      
+}

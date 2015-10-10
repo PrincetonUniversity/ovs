@@ -974,7 +974,10 @@ uint32_t packet_csum_pseudoheader(const struct ip_header *);
 OVS_HDR_DECLS /* @Shahbaz: */
 
 OVS_FUNC_DECLS /* @Shahbaz: */
-        
-void deparse(struct dp_packet *packet);
+
+/* @Shahbaz: */
+void add_header(struct dp_packet *, const struct nlattr *a);
+void remove_header(struct dp_packet *, const struct nlattr *a);
+void deparse(struct dp_packet *);
 
 #endif /* packets.h */

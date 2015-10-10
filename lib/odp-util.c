@@ -120,6 +120,8 @@ odp_action_len(uint16_t type)
     OVS_ACTION_LEN_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OVS_ACTION_ATTR_ADD_HEADER: return ATTR_LEN_VARIABLE;
+    case OVS_ACTION_ATTR_REMOVE_HEADER: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_DEPARSE: return 0;
 
     case OVS_ACTION_ATTR_UNSPEC:
@@ -636,11 +638,38 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
     OVS_FORMAT_ODP_ACTION_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OVS_ACTION_ATTR_ADD_HEADER: { 
+        int key = nl_attr_type(nl_attr_get(a));
+        
+        ds_put_cstr(ds, "add_header(");
+        
+        switch((enum ovs_key_attr) key) {
+        OVS_FORMAT_ODP_ACTION_ADD_HEADER_CASES
+        }
+        
+        ds_put_char(ds, ')');   
+        break;
+    }
+    
+    /* @Shahbaz: */
+    case OVS_ACTION_ATTR_REMOVE_HEADER: { 
+        int key = nl_attr_type(nl_attr_get(a));
+        
+        ds_put_cstr(ds, "remove_header(");
+        
+        switch((enum ovs_key_attr) key) {
+        OVS_FORMAT_ODP_ACTION_REMOVE_HEADER_CASES
+        }
+        
+        ds_put_char(ds, ')');   
+        break;
+    }
+     
+    /* @Shahbaz: */
     case OVS_ACTION_ATTR_DEPARSE:
         ds_put_cstr(ds, "deparse");
         break;
     
-
     case OVS_ACTION_ATTR_UNSPEC:
     case __OVS_ACTION_ATTR_MAX:
     default:

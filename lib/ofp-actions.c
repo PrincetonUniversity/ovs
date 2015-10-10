@@ -308,6 +308,9 @@ enum ofp_raw_action_type {
     /* OF1.5+(32): struct ofp_action_add_header, ... */
     OFPAT_RAW_ADD_HEADER,
     
+    /* OF1.5+(33): struct ofp_action_remove_header, ... */
+    OFPAT_RAW_REMOVE_HEADER,
+    
 #include "p4/src/ovs_action_type.h" /* @Shahbaz: */
 };
 
@@ -943,7 +946,9 @@ format_MODIFY_FIELD(const struct ofpact_modify_field *mf, struct ds *s)
     ds_put_format(s, "->%s", mf->field->name);
 }
 
-/* @Shahbaz: */
+/* @Shahbaz: 
+ * TODO: add error checks.
+ */
 struct ofp_action_add_header {
     ovs_be16 type;
     ovs_be16 len;
@@ -1018,6 +1023,86 @@ format_ADD_HEADER(const struct ofpact_add_header *ah, struct ds *s)
     ds_put_cstr(s, "add_header:");
     for (i = 0; i < ah->n_bytes; i++) {
         ds_put_char(s, ah->name[i]);
+    }
+}
+
+/* @Shahbaz: 
+ * TODO: add error checks.
+ */
+struct ofp_action_remove_header {
+    ovs_be16 type;
+    ovs_be16 len;
+
+    unsigned int n_bytes;
+    char name[8]; /* Start of user-defined data. */
+    /* Possibly followed by additional user-defined data. */
+};
+OFP_ASSERT(sizeof(struct ofp_action_remove_header) == 16);
+
+static enum ofperr
+decode_OFPAT_RAW_REMOVE_HEADER(const struct ofp_action_remove_header *a,
+                               struct ofpbuf *ofpacts)
+{
+    struct ofpact_remove_header *rh;
+    unsigned int n_bytes;
+    
+    n_bytes = a->n_bytes;
+    rh = ofpact_put(ofpacts, OFPACT_REMOVE_HEADER,
+                    offsetof(struct ofpact_remove_header, name) + n_bytes);
+    rh->n_bytes = n_bytes;
+    memcpy(rh->name, a->name, n_bytes);
+    return 0;
+}
+
+static void
+encode_REMOVE_HEADER(const struct ofpact_remove_header *rh,
+                     enum ofp_version ofp_version, struct ofpbuf *out)
+{
+    if (ofp_version >= OFP15_VERSION) {
+        size_t start_ofs = out->size;
+        struct ofp_action_remove_header *a;
+        unsigned int remainder;
+        unsigned int len;
+        
+        put_OFPAT_REMOVE_HEADER(out);
+        out->size = out->size - sizeof a->name;
+        
+        ofpbuf_put(out, rh->name, rh->n_bytes);
+        
+        len = out->size - start_ofs;
+        remainder = len % OFP_ACTION_ALIGN;
+        if (remainder) {
+            ofpbuf_put_zeros(out, OFP_ACTION_ALIGN - remainder);
+        }
+    
+        a = ofpbuf_at(out, start_ofs, sizeof *a);
+        a->len = htons(out->size - start_ofs);
+        a->n_bytes = rh->n_bytes;
+    }
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+parse_REMOVE_HEADER(char *arg, struct ofpbuf *ofpacts,
+                    enum ofputil_protocol *usable_protocols OVS_UNUSED)
+{
+    struct ofpact_remove_header *rh;
+    
+    rh = ofpact_put_REMOVE_HEADER(ofpacts);
+    rh->n_bytes = strlen(arg);
+    ofpbuf_put(ofpacts, arg, rh->n_bytes);
+    
+    ofpact_update_len(ofpacts, &rh->ofpact);
+    return NULL;
+}
+
+static void
+format_REMOVE_HEADER(const struct ofpact_remove_header *rh, struct ds *s)
+{   
+    size_t i;
+
+    ds_put_cstr(s, "remove_header:");
+    for (i = 0; i < rh->n_bytes; i++) {
+        ds_put_char(s, rh->name[i]);
     }
 }
 
@@ -5165,7 +5250,8 @@ ofpact_is_set_or_move_action(const struct ofpact *a)
     OVS_IS_SET_OR_MOVE_ACTION_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
-    case OFPACT_ADD_HEADER:                 
+    case OFPACT_ADD_HEADER:  
+    case OFPACT_REMOVE_HEADER:  
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
@@ -5244,6 +5330,7 @@ ofpact_is_allowed_in_actions_set(const struct ofpact *a)
     
     /* @Shahbaz: */
     case OFPACT_ADD_HEADER:
+    case OFPACT_REMOVE_HEADER:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
@@ -5415,6 +5502,7 @@ ovs_instruction_type_from_ofpact_type(enum ofpact_type type)
                 
     /* @Shahbaz: */
     case OFPACT_ADD_HEADER:
+    case OFPACT_REMOVE_HEADER:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return OVSINST_OFPIT11_APPLY_ACTIONS;
@@ -6065,6 +6153,7 @@ ofpact_check__(enum ofputil_protocol *usable_protocols, struct ofpact *a,
                 
     /* @Shahbaz: */
     case OFPACT_ADD_HEADER:
+    case OFPACT_REMOVE_HEADER:
     case OFPACT_MODIFY_FIELD: 
     case OFPACT_DEPARSE:
         return 0;
@@ -6454,6 +6543,7 @@ ofpact_outputs_to_port(const struct ofpact *ofpact, ofp_port_t port)
                 
     /* @Shahbaz: */
     case OFPACT_ADD_HEADER:
+    case OFPACT_REMOVE_HEADER:
     case OFPACT_MODIFY_FIELD:
     case OFPACT_DEPARSE:
         return false;
