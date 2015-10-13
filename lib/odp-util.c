@@ -120,6 +120,7 @@ odp_action_len(uint16_t type)
     OVS_ACTION_LEN_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OVS_ACTION_ATTR_ADD_TO_FIELD: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_ADD_HEADER: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_REMOVE_HEADER: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_DEPARSE: return 0;
@@ -164,6 +165,8 @@ ovs_key_attr_to_string(enum ovs_key_attr attr, char *namebuf, size_t bufsize)
     case OVS_KEY_ATTR_RECIRC_ID: return "recirc_id";
 
     OVS_KEY_ATTRS_TO_STRING_CASES /* @Shahbaz: */
+            
+    case OVS_KEY_ATTR_ETHERNET__ETHERTYPE: return "ethernet_"; /* @Shahbaz: */
 
     case __OVS_KEY_ATTR_MAX:
     default:
@@ -636,6 +639,17 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         break;
 
     OVS_FORMAT_ODP_ACTION_CASES /* @Shahbaz: */
+                
+    /* @Shahbaz: */
+    case OVS_ACTION_ATTR_ADD_TO_FIELD:
+        a = nl_attr_get(a);
+        size = nl_attr_get_size(a);
+        ds_put_cstr(ds, "add_to_field(");
+        
+        format_odp_key_attr(a, NULL, NULL, ds, false);
+        
+        ds_put_cstr(ds, ")");
+        break;
     
     /* @Shahbaz: */
     case OVS_ACTION_ATTR_ADD_HEADER: { 
@@ -1262,6 +1276,7 @@ static const struct attr_len_tbl ovs_flow_key_attr_lens[OVS_KEY_ATTR_MAX + 1] = 
     [OVS_KEY_ATTR_ARP]       = { .len = sizeof(struct ovs_key_arp) },
     [OVS_KEY_ATTR_ND]        = { .len = sizeof(struct ovs_key_nd) },
     OVS_FLOW_KEY_ATTR_LENS /* @Shahbaz: */
+    [OVS_KEY_ATTR_ETHERNET__ETHERTYPE] = { .len = 2 }, /* @Shahbaz: */
 };
 
 /* Returns the correct length of the payload for a flow key attribute of the
@@ -2320,6 +2335,14 @@ format_odp_key_attr(const struct nlattr *a, const struct nlattr *ma,
     }
 
     OVS_FORMAT_ODP_KEY_ATTR_CASES /* @Shahbaz: */
+    
+    /* @Shahbaz: */
+    case OVS_KEY_ATTR_ETHERNET__ETHERTYPE: {
+        const ovs_be16 *key = nl_attr_get(a);
+        format_be16(ds, "ethernet__etherType", *key, NULL, verbose);
+        ds_chomp(ds, ',');
+        break;
+    }
 
     case OVS_KEY_ATTR_UNSPEC:
     case __OVS_KEY_ATTR_MAX:

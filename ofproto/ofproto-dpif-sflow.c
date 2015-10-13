@@ -1175,6 +1175,7 @@ dpif_sflow_read_actions(const struct flow *flow,
         OVS_SFLOW_READ_ACTIONS_CASES /* @Shahbaz: */
         
         /* @Shahbaz: */
+        case OVS_ACTION_ATTR_ADD_TO_FIELD:
         case OVS_ACTION_ATTR_ADD_HEADER:
         case OVS_ACTION_ATTR_REMOVE_HEADER:
         case OVS_ACTION_ATTR_DEPARSE:

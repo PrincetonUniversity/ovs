@@ -311,6 +311,9 @@ enum ofp_raw_action_type {
     /* OF1.5+(33): struct ofp_action_remove_header, ... */
     OFPAT_RAW_REMOVE_HEADER,
     
+    /* OF1.5+(34): struct ofp_action_add_to_field, ... */
+    OFPAT_RAW_ADD_TO_FIELD,
+    
 #include "p4/src/ovs_action_type.h" /* @Shahbaz: */
 };
 
@@ -1104,6 +1107,143 @@ format_REMOVE_HEADER(const struct ofpact_remove_header *rh, struct ds *s)
     for (i = 0; i < rh->n_bytes; i++) {
         ds_put_char(s, rh->name[i]);
     }
+}
+
+/* @Shahbaz:
+ * TODO: 1) handle addition for masked fields.
+ */
+struct ofp_action_add_to_field {
+    ovs_be16 type;
+    ovs_be16 len;
+
+    uint8_t pad[4];
+};
+OFP_ASSERT(sizeof(struct ofp_action_modify_field) == 8);
+
+static enum ofperr
+decode_ofpat_add_to_field(const struct ofp_action_add_to_field *a,
+                          bool may_mask, struct ofpbuf *ofpacts)
+{
+    struct ofpact_add_to_field *atf;
+    enum ofperr error;
+    struct ofpbuf b;
+
+    atf = ofpact_put_ADD_TO_FIELD(ofpacts);
+
+    ofpbuf_use_const(&b, a, ntohs(a->len));
+    ofpbuf_pull(&b, OBJECT_OFFSETOF(a, pad));
+    error = nx_pull_entry(&b, &atf->field, &atf->value,
+                          may_mask ? &atf->mask : NULL);
+    if (error) {
+        return (error == OFPERR_OFPBMC_BAD_MASK
+                ? OFPERR_OFPBAC_BAD_SET_MASK
+                : error);
+    }
+    if (!may_mask) {
+        memset(&atf->mask, 0xff, atf->field->n_bytes);
+    }
+
+    if (!is_all_zeros(b.data, b.size)) {
+        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
+    }
+
+    /* OpenFlow says specifically that one may not set OXM_OF_IN_PORT via
+     * Set-Field. */
+    if (atf->field->id == MFF_IN_PORT_OXM) {
+        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
+    }
+
+    /* oxm_length is now validated to be compatible with mf_value. */
+    if (!atf->field->writable) {
+        VLOG_WARN_RL(&rl, "destination field %s is not writable",
+                     atf->field->name);
+        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
+    }
+
+    return 0;
+}
+
+static enum ofperr
+decode_OFPAT_RAW_ADD_TO_FIELD(const struct ofp_action_add_to_field *a,
+                              struct ofpbuf *ofpacts)
+{
+    return decode_ofpat_add_to_field(a, true, ofpacts);
+}
+
+static void
+encode_ADD_TO_FIELD(const struct ofpact_add_to_field *atf,
+                    enum ofp_version ofp_version, struct ofpbuf *out)
+{
+    if (ofp_version >= OFP15_VERSION) {
+        struct ofp_action_add_to_field *a OVS_UNUSED;
+        size_t start_ofs = out->size;
+
+        a = put_OFPAT_ADD_TO_FIELD(out);
+        out->size = out->size - sizeof a->pad;
+        nx_put_entry(out, atf->field->id, ofp_version, &atf->value, &atf->mask);
+        pad_ofpat(out, start_ofs);
+    }
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+add_to_field_parse__(char *arg, struct ofpbuf *ofpacts,
+                     enum ofputil_protocol *usable_protocols)
+{
+    struct ofpact_add_to_field *atf = ofpact_put_ADD_TO_FIELD(ofpacts);
+    char *value;
+    char *delim;
+    char *key;
+    const struct mf_field *mf;
+    char *error;
+
+    value = arg;
+    delim = strstr(arg, "->");
+    if (!delim) {
+        return xasprintf("%s: missing `->'", arg);
+    }
+    if (strlen(delim) <= strlen("->")) {
+        return xasprintf("%s: missing field name following `->'", arg);
+    }
+
+    key = delim + strlen("->");
+    mf = mf_from_name(key);
+    if (!mf) {
+        return xasprintf("%s is not a valid OXM field name", key);
+    }
+    if (!mf->writable) {
+        return xasprintf("%s is read-only", key);
+    }
+    atf->field = mf;
+    delim[0] = '\0';
+    error = mf_parse(mf, value, &atf->value, &atf->mask);
+    if (error) {
+        return error;
+    }
+
+    if (!mf_is_value_valid(mf, &atf->value)) {
+        return xasprintf("%s is not a valid value for field %s", value, key);
+    }
+
+    *usable_protocols &= mf->usable_protocols_exact;
+    return NULL;
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+parse_ADD_TO_FIELD(char *arg, struct ofpbuf *ofpacts,
+                   enum ofputil_protocol *usable_protocols)
+{
+    char *copy = xstrdup(arg);
+    char *error = add_to_field_parse__(copy, ofpacts, usable_protocols);
+    free(copy);
+    return error;
+}
+
+static void
+format_ADD_TO_FIELD(const struct ofpact_add_to_field *atf, struct ds *s)
+{   
+    ds_put_cstr(s, "add_to_field:");
+    mf_format(atf->field, &atf->value, &atf->mask, s);
+    ds_put_format(s, "->%s", atf->field->name);
 }
 
 /* Action structure for NXAST_OUTPUT_REG.
@@ -5250,6 +5390,7 @@ ofpact_is_set_or_move_action(const struct ofpact *a)
     OVS_IS_SET_OR_MOVE_ACTION_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:  
     case OFPACT_REMOVE_HEADER:  
     case OFPACT_MODIFY_FIELD:
@@ -5329,6 +5470,7 @@ ofpact_is_allowed_in_actions_set(const struct ofpact *a)
     OVS_IS_ALLOWED_IN_ACTIONS_SET_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:
     case OFPACT_REMOVE_HEADER:
     case OFPACT_MODIFY_FIELD:
@@ -5501,6 +5643,7 @@ ovs_instruction_type_from_ofpact_type(enum ofpact_type type)
     OVS_INSTRUCTION_TYPE_FROM_OFPACT_TYPE_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:
     case OFPACT_REMOVE_HEADER:
     case OFPACT_MODIFY_FIELD:
@@ -6152,6 +6295,7 @@ ofpact_check__(enum ofputil_protocol *usable_protocols, struct ofpact *a,
     OVS_CHECK___CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:
     case OFPACT_REMOVE_HEADER:
     case OFPACT_MODIFY_FIELD: 
@@ -6542,6 +6686,7 @@ ofpact_outputs_to_port(const struct ofpact *ofpact, ofp_port_t port)
     OVS_OUTPUTS_TO_PORT_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:
     case OFPACT_REMOVE_HEADER:
     case OFPACT_MODIFY_FIELD:

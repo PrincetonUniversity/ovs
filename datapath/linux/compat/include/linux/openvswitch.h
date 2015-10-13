@@ -353,6 +353,9 @@ enum ovs_key_attr {
 #endif
 
 	OVS_KEY_ATTRS /* @Shahbaz: */
+                
+        /* Shahbaz: */
+        OVS_KEY_ATTR_ETHERNET__ETHERTYPE,
 
 	__OVS_KEY_ATTR_MAX
 };
@@ -718,6 +721,7 @@ enum ovs_action_attr {
 	OVS_ACTION_ATTR_TUNNEL_POP,    /* u32 port number. */
 	OVS_ACTION_ATTRS               /* @Shahbaz: */
         /* @Shahbaz: */
+        OVS_ACTION_ATTR_ADD_TO_FIELD,
         OVS_ACTION_ATTR_ADD_HEADER,
         OVS_ACTION_ATTR_REMOVE_HEADER,        
         OVS_ACTION_ATTR_DEPARSE,

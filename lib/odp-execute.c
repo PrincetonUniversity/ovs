@@ -486,6 +486,28 @@ apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
 
 OVS_ODP_EXECUTE_FUNCS /* Shahbaz: */
 
+/* @Shahbaz: */
+static void
+odp_execute_add_to_field(struct dp_packet *packet,
+                         const struct nlattr *a)
+{
+    enum ovs_key_attr key = nl_attr_type(a);
+    
+    switch (key) {
+    case OVS_KEY_ATTR_ETHERNET__ETHERTYPE: {
+        const uint16_t *value = nl_attr_get(a);
+        packet->ethernet_.ethernet__etherType = htons(
+                ntohs(packet->ethernet_.ethernet__etherType) + ntohs(*value));
+        break;
+    }
+
+    case OVS_ACTION_ATTR_UNSPEC:
+    case __OVS_KEY_ATTR_MAX:
+    default:
+        OVS_NOT_REACHED();
+    }
+}
+
 static bool
 requires_datapath_assistance(const struct nlattr *a)
 {
@@ -513,6 +535,7 @@ requires_datapath_assistance(const struct nlattr *a)
     OVS_REQUIRES_DATAPATH_ASSISTANCE_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */            
+    case OVS_ACTION_ATTR_ADD_TO_FIELD:
     case OVS_ACTION_ATTR_ADD_HEADER:
     case OVS_ACTION_ATTR_REMOVE_HEADER:
     case OVS_ACTION_ATTR_DEPARSE:
@@ -637,6 +660,14 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
             break;
 
         OVS_ODP_EXECUTE_ACTIONS_CASES /* @Shahbaz: */
+                    
+        /* @Shahbaz: */
+        case OVS_ACTION_ATTR_ADD_TO_FIELD: {
+            for (i = 0; i < cnt; i++) {    
+                odp_execute_add_to_field(packets[i], nl_attr_get(a));
+            }
+            break;
+        }
                     
         /* @Shahbaz: */
         case OVS_ACTION_ATTR_ADD_HEADER: {
