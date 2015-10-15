@@ -123,8 +123,6 @@ static bool recv_flow_stats_reply(struct vconn *, ovs_be32 send_xid,
 int
 main(int argc, char *argv[])
 {
-    getchar(); /*  @Shahbaz: */
-    
     struct ovs_cmdl_context ctx = { .argc = 0, };
     set_program_name(argv[0]);
     service_start(&argc, &argv);
