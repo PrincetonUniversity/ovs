@@ -3611,6 +3611,7 @@ dp_execute_cb(void *aux_, struct dp_packet **packets, int cnt,
     OVS_EXECUTE_CB_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OVS_ACTION_ATTR_SUB_FROM_FIELD:
     case OVS_ACTION_ATTR_ADD_TO_FIELD:
     case OVS_ACTION_ATTR_ADD_HEADER:
     case OVS_ACTION_ATTR_REMOVE_HEADER:

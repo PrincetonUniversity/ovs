@@ -120,6 +120,7 @@ odp_action_len(uint16_t type)
     OVS_ACTION_LEN_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OVS_ACTION_ATTR_SUB_FROM_FIELD: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_ADD_TO_FIELD: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_ADD_HEADER: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_REMOVE_HEADER: return ATTR_LEN_VARIABLE;
@@ -637,6 +638,17 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         break;
 
     OVS_FORMAT_ODP_ACTION_CASES /* @Shahbaz: */
+    
+    /* @Shahbaz: */
+    case OVS_ACTION_ATTR_SUB_FROM_FIELD:
+        a = nl_attr_get(a);
+        size = nl_attr_get_size(a);
+        ds_put_cstr(ds, "sub_from_field(");
+        
+        format_odp_key_attr(a, NULL, NULL, ds, false);
+        
+        ds_put_cstr(ds, ")");
+        break;
                 
     /* @Shahbaz: */
     case OVS_ACTION_ATTR_ADD_TO_FIELD:

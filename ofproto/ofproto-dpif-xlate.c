@@ -4105,6 +4105,7 @@ recirc_unroll_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         OVS_RECIRC_UNROLL_ACTIONS_CASES /* @Shahbaz: */
                     
         /* @Shahbaz: */
+        case OFPACT_SUB_FROM_FIELD:
         case OFPACT_ADD_TO_FIELD:
         case OFPACT_ADD_HEADER:
         case OFPACT_REMOVE_HEADER:
@@ -4145,6 +4146,50 @@ apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
 
 
 OVS_COMPOSE_AND_XLATE_FUNCS /* @Shahbaz: */
+
+/* @Shahbaz: */
+static void 
+compose_sub_from_field_(struct xlate_ctx *ctx, enum ovs_key_attr key,
+                        const void *value, size_t size)
+{
+    bool use_masked = ctx->xbridge->support.masked_set_action; 
+    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
+                                          ctx->odp_actions, ctx->wc, 
+                                          use_masked); 
+    
+    size_t offset = nl_msg_start_nested(ctx->odp_actions,
+                                        OVS_ACTION_ATTR_SUB_FROM_FIELD);
+    char *data = nl_msg_put_unspec_uninit(ctx->odp_actions, key, size);
+    memcpy(data, value, size);
+    nl_msg_end_nested(ctx->odp_actions, offset);
+}
+
+static void 
+compose_sub_from_field(struct xlate_ctx *ctx, 
+                       const struct ofpact_sub_from_field *sub_from_field) 
+{ 
+    struct flow_wildcards *wc = ctx->wc;
+    struct flow *flow = &ctx->xin->flow;
+    
+    const struct mf_field *mf = sub_from_field->field;
+    const union mf_value *value = &sub_from_field->value;
+
+/* @Shahbaz: 
+ * TODO: 1) handle subtraction for masked fields.
+ */    
+//    const union mf_value *mask = &sub_from_field->mask;
+
+    mf_mask_field_and_prereqs(mf, wc);
+    if (mf_are_prereqs_ok(mf, flow)) {        
+        switch (mf->id) {
+        OVS_COMPOSE_SUB_FROM_FIELD_CASES /* @Shahbaz: */
+        
+        case MFF_N_IDS:
+        default:
+            OVS_NOT_REACHED();
+        }
+    }
+}
 
 /* @Shahbaz: */
 static void 
@@ -4601,6 +4646,14 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
             break;
 
         OVS_DO_XLATE_ACTIONS_CASES /* @Shahbaz: */
+                    
+        /* @Shahbaz: */
+        case OFPACT_SUB_FROM_FIELD: {
+            const struct ofpact_sub_from_field *sub_from_field;
+            sub_from_field = ofpact_get_SUB_FROM_FIELD(a);
+            compose_sub_from_field(ctx, sub_from_field);
+            break;
+        }
                     
         /* @Shahbaz: */
         case OFPACT_ADD_TO_FIELD: {

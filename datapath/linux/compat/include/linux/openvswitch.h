@@ -718,6 +718,7 @@ enum ovs_action_attr {
 	OVS_ACTION_ATTR_TUNNEL_POP,    /* u32 port number. */
 	OVS_ACTION_ATTRS               /* @Shahbaz: */
         /* @Shahbaz: */
+        OVS_ACTION_ATTR_SUB_FROM_FIELD,
         OVS_ACTION_ATTR_ADD_TO_FIELD,
         OVS_ACTION_ATTR_ADD_HEADER,
         OVS_ACTION_ATTR_REMOVE_HEADER,        

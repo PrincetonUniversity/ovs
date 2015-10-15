@@ -127,6 +127,7 @@
     OFPACT(ADD_HEADER,      ofpact_add_header,  ofpact, "add_header") \
     OFPACT(REMOVE_HEADER,   ofpact_remove_header, ofpact, "remove_header") \
     OFPACT(ADD_TO_FIELD,    ofpact_add_to_field, ofpact, "add_to_field") \
+    OFPACT(SUB_FROM_FIELD,  ofpact_sub_from_field, ofpact, "sub_from_field") \
     OVS_OFPACTS
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
@@ -444,6 +445,16 @@ struct ofpact_remove_header {
 /* OFPACT_ADD_TO_FIELD.
  */
 struct ofpact_add_to_field {
+    struct ofpact ofpact;
+    const struct mf_field *field;
+    union mf_value value;
+    union mf_value mask;
+};
+
+/* @Shahbaz: */
+/* OFPACT_SUB_FROM_FIELD.
+ */
+struct ofpact_sub_from_field {
     struct ofpact ofpact;
     const struct mf_field *field;
     union mf_value value;
