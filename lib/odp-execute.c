@@ -494,12 +494,7 @@ odp_execute_add_to_field(struct dp_packet *packet,
     enum ovs_key_attr key = nl_attr_type(a);
     
     switch (key) {
-    case OVS_KEY_ATTR_ETHERNET__ETHERTYPE: {
-        const uint16_t *value = nl_attr_get(a);
-        packet->ethernet_.ethernet__etherType = htons(
-                ntohs(packet->ethernet_.ethernet__etherType) + ntohs(*value));
-        break;
-    }
+    OVS_ODP_EXECUTE_ADD_TO_FIELD_CASES /* @Shahbaz: */
 
     case OVS_ACTION_ATTR_UNSPEC:
     case __OVS_KEY_ATTR_MAX:

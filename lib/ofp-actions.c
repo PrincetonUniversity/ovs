@@ -1111,6 +1111,7 @@ format_REMOVE_HEADER(const struct ofpact_remove_header *rh, struct ds *s)
 
 /* @Shahbaz:
  * TODO: 1) handle addition for masked fields.
+ *       2) handle addition for metadata fields.
  */
 struct ofp_action_add_to_field {
     ovs_be16 type;

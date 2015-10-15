@@ -353,9 +353,6 @@ enum ovs_key_attr {
 #endif
 
 	OVS_KEY_ATTRS /* @Shahbaz: */
-                
-        /* Shahbaz: */
-        OVS_KEY_ATTR_ETHERNET__ETHERTYPE,
 
 	__OVS_KEY_ATTR_MAX
 };

@@ -4172,17 +4172,17 @@ compose_add_to_field(struct xlate_ctx *ctx,
     
     const struct mf_field *mf = add_to_field->field;
     const union mf_value *value = &add_to_field->value;
+
+/* @Shahbaz: 
+ * TODO: 1) handle addition for masked fields.
+ */    
 //    const union mf_value *mask = &add_to_field->mask;
 
     mf_mask_field_and_prereqs(mf, wc);
     if (mf_are_prereqs_ok(mf, flow)) {        
         switch (mf->id) {
-        case MFF_ETHERNET__ETHERTYPE: {
-            compose_add_to_field_(ctx, OVS_KEY_ATTR_ETHERNET__ETHERTYPE, 
-                    &value->be16, sizeof value->be16);
-            break;
-        }
-
+        OVS_COMPOSE_ADD_TO_FIELD_CASES /* @Shahbaz: */
+        
         case MFF_N_IDS:
         default:
             OVS_NOT_REACHED();

@@ -1205,6 +1205,11 @@ uint64_t be64_to_u64(ovs_be64 value) {
 }
 
 /* @Shahbaz: */
+ovs_be64 u64_to_be64(uint64_t value) {
+    return be64_to_u64(value);
+}
+
+/* @Shahbaz: */
 void ovs_apply_mask(const uint8_t *key, const uint8_t * header,
                     const uint8_t *mask, uint8_t *res, size_t n_bytes) {
     int i;
