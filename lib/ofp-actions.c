@@ -317,6 +317,9 @@ enum ofp_raw_action_type {
     /* OF1.5+(35): struct ofp_action_sub_from_field, ... */
     OFPAT_RAW_SUB_FROM_FIELD,
     
+    /* OF1.5+(36): struct ofp_action_calc_fields_verify, ... */
+    OFPAT_RAW_CALC_FIELDS_VERIFY,
+    
 #include "p4/src/ovs_action_type.h" /* @Shahbaz: */
 };
 
@@ -959,8 +962,8 @@ struct ofp_action_add_header {
     ovs_be16 type;
     ovs_be16 len;
 
-    unsigned int n_bytes;
-    char name[8]; /* Start of user-defined data. */
+    ovs_be16 n_bytes;
+    uint8_t name[10]; /* Start of user-defined data. */
     /* Possibly followed by additional user-defined data. */
 };
 OFP_ASSERT(sizeof(struct ofp_action_add_header) == 16);
@@ -972,7 +975,7 @@ decode_OFPAT_RAW_ADD_HEADER(const struct ofp_action_add_header *a,
     struct ofpact_add_header *ah;
     unsigned int n_bytes;
     
-    n_bytes = a->n_bytes;
+    n_bytes = ntohs(a->n_bytes);
     ah = ofpact_put(ofpacts, OFPACT_ADD_HEADER,
                     offsetof(struct ofpact_add_header, name) + n_bytes);
     ah->n_bytes = n_bytes;
@@ -1003,7 +1006,7 @@ encode_ADD_HEADER(const struct ofpact_add_header *ah,
     
         a = ofpbuf_at(out, start_ofs, sizeof *a);
         a->len = htons(out->size - start_ofs);
-        a->n_bytes = ah->n_bytes;
+        a->n_bytes = htons(ah->n_bytes);
     }
 }
 
@@ -1039,8 +1042,8 @@ struct ofp_action_remove_header {
     ovs_be16 type;
     ovs_be16 len;
 
-    unsigned int n_bytes;
-    char name[8]; /* Start of user-defined data. */
+    ovs_be16 n_bytes;
+    uint8_t name[10]; /* Start of user-defined data. */
     /* Possibly followed by additional user-defined data. */
 };
 OFP_ASSERT(sizeof(struct ofp_action_remove_header) == 16);
@@ -1052,7 +1055,7 @@ decode_OFPAT_RAW_REMOVE_HEADER(const struct ofp_action_remove_header *a,
     struct ofpact_remove_header *rh;
     unsigned int n_bytes;
     
-    n_bytes = a->n_bytes;
+    n_bytes = ntohs(a->n_bytes);
     rh = ofpact_put(ofpacts, OFPACT_REMOVE_HEADER,
                     offsetof(struct ofpact_remove_header, name) + n_bytes);
     rh->n_bytes = n_bytes;
@@ -1083,7 +1086,7 @@ encode_REMOVE_HEADER(const struct ofpact_remove_header *rh,
     
         a = ofpbuf_at(out, start_ofs, sizeof *a);
         a->len = htons(out->size - start_ofs);
-        a->n_bytes = rh->n_bytes;
+        a->n_bytes = htons(rh->n_bytes);
     }
 }
 
@@ -1386,6 +1389,111 @@ format_SUB_FROM_FIELD(const struct ofpact_sub_from_field *sff, struct ds *s)
     ds_put_cstr(s, "sub_from_field:");
     mf_format(sff->field, &sff->value, &sff->mask, s);
     ds_put_format(s, "->%s", sff->field->name);
+}
+
+/* @Shahbaz: */
+/* TODO: handle error checks.
+ */
+struct ofp_action_calc_fields_verify {
+    ovs_be16 type;
+    ovs_be16 len;
+
+    uint8_t pad[4];
+};
+OFP_ASSERT(sizeof(struct ofp_action_calc_fields_verify) == 8);
+
+static enum ofperr
+decode_OFPAT_RAW_CALC_FIELDS_VERIFY(const struct ofp_action_calc_fields_verify *a,
+                                    struct ofpbuf *out)
+{
+    
+}
+
+static void
+encode_CALC_FIELDS_VERIFY(const struct ofpact_calc_fields_verify *cfv,
+                          enum ofp_version ofp_version OVS_UNUSED, struct ofpbuf *out)
+{
+    
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+calc_fields_verify_parse__(const char *s, char **save_ptr,
+                           const char *dst_field, const char *algorithm,
+                           const char *src_field_delim, struct ofpbuf *ofpacts)
+{
+    struct ofpact_calc_fields_verify *cfv;
+
+    if (!src_field_delim) {
+        return xasprintf("%s: not enough arguments to calc_fields_verify action", s);
+    }
+
+    if (strcasecmp(src_field_delim, "fields")) {
+        return xasprintf("%s: missing field delimiter, expected `fields' "
+                         "got `%s'", s, src_field_delim);
+    }
+
+    cfv = ofpact_put_CALC_FIELDS_VERIFY(ofpacts);
+
+    for (;;) {
+        const enum mf_field_id mf_id;
+        char *src_field;
+        
+        src_field = strtok_r(NULL, ", []", save_ptr);
+        if (!src_field || cfv->n_fields >= MAX_CALC_FIELDS) {
+            break;
+        }
+        
+        ofpbuf_put(ofpacts, &mf_from_name(src_field)->id, sizeof(enum mf_field_id));
+
+        cfv = ofpacts->header;
+        cfv->n_fields++;
+    }
+    ofpact_update_len(ofpacts, &cfv->ofpact);
+
+    if (!strcasecmp(algorithm, "csum16")) {
+        cfv->algorithm = CSUM16;
+    } else {
+        return xasprintf("%s: unknown algorithm `%s'", s, algorithm);
+    }
+
+    if (dst_field) {
+        cfv->dst_field_id = mf_from_name(dst_field)->id;
+    }
+
+    return NULL;
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+calc_fields_verify_parse(const char *s, struct ofpbuf *ofpacts)
+{
+    char *dst_field, *algorithm, *src_field_delim;
+    char *tokstr, *save_ptr;
+    char *error;
+
+    save_ptr = NULL;
+    tokstr = xstrdup(s);
+    dst_field = strtok_r(tokstr, ", ", &save_ptr);
+    algorithm = strtok_r(NULL, ", ", &save_ptr);
+    src_field_delim = strtok_r(NULL, ": ", &save_ptr);
+
+    error = calc_fields_verify_parse__(s, &save_ptr, dst_field, algorithm,
+                                       src_field_delim, ofpacts);
+    free(tokstr);
+
+    return error;
+}
+
+static char * OVS_WARN_UNUSED_RESULT
+parse_CALC_FIELDS_VERIFY(const char *arg, struct ofpbuf *ofpacts,
+                         enum ofputil_protocol *usable_protocols OVS_UNUSED)
+{
+    return calc_fields_verify_parse(arg, ofpacts);
+}
+
+static void
+format_CALC_FIELDS_VERIFY(const struct ofpact_calc_fields_verify *a, struct ds *s)
+{
+    
 }
 
 /* Action structure for NXAST_OUTPUT_REG.

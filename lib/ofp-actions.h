@@ -128,6 +128,7 @@
     OFPACT(REMOVE_HEADER,   ofpact_remove_header, ofpact, "remove_header") \
     OFPACT(ADD_TO_FIELD,    ofpact_add_to_field, ofpact, "add_to_field") \
     OFPACT(SUB_FROM_FIELD,  ofpact_sub_from_field, ofpact, "sub_from_field") \
+    OFPACT(CALC_FIELDS_VERIFY, ofpact_calc_fields_verify, ofpact, "calc_fields_verify") \
     OVS_OFPACTS
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
@@ -429,7 +430,7 @@ struct ofpact_modify_field {
 struct ofpact_add_header {
     struct ofpact ofpact;
     unsigned int n_bytes;
-    char name[];
+    uint8_t name[];
 };
 
 /* @Shahbaz: */
@@ -438,7 +439,7 @@ struct ofpact_add_header {
 struct ofpact_remove_header {
     struct ofpact ofpact;
     unsigned int n_bytes;
-    char name[];
+    uint8_t name[];
 };
 
 /* @Shahbaz: */
@@ -459,6 +460,25 @@ struct ofpact_sub_from_field {
     const struct mf_field *field;
     union mf_value value;
     union mf_value mask;
+};
+
+/* @Shahbaz: calculated fields algorithm to apply. */
+enum cf_algorithm {
+    CSUM16 = 0,
+};
+
+/* @Shahbaz: */
+#define MAX_CALC_FIELDS 64
+
+/* @Shahbaz: */
+/* OFPACT_CALC_FIELDS_VERIFY.
+ */
+struct ofpact_calc_fields_verify {
+    struct ofpact ofpact;
+    enum mf_field_id dst_field_id;
+    enum cf_algorithm algorithm;
+    unsigned int n_fields;
+    enum mf_field_id src_field_ids[];
 };
 
 /* OFPACT_PUSH_VLAN/MPLS/PBB

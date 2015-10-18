@@ -1135,7 +1135,7 @@ is_all_ones(const void *p_, size_t n)
 }
 
 /* @Shahbaz: */
-uint64_t u24_to_u64(const uint8_t *value) {
+uint64_t be24_to_u64(const uint8_t *value) {
     uint64_t x = 0;
 
     x |= value[0]; x <<= 16;
@@ -1146,7 +1146,7 @@ uint64_t u24_to_u64(const uint8_t *value) {
 }
 
 /* @Shahbaz: */
-uint64_t u40_to_u64(const uint8_t *value) {
+uint64_t be40_to_u64(const uint8_t *value) {
     uint64_t x = 0;
 
     x |= value[0]; x <<= 32;
@@ -1159,7 +1159,7 @@ uint64_t u40_to_u64(const uint8_t *value) {
 }
 
 /* @Shahbaz: */
-uint64_t u48_to_u64(const uint8_t *value) {
+uint64_t be48_to_u64(const uint8_t *value) {
     uint64_t x = 0;
     
     x |= value[0]; x <<= 40;
@@ -1173,7 +1173,7 @@ uint64_t u48_to_u64(const uint8_t *value) {
 }
 
 /* @Shahbaz: */
-uint64_t u56_to_u64(const uint8_t *value) {
+uint64_t be56_to_u64(const uint8_t *value) {
     uint64_t x = 0;
     
     x |= value[0]; x <<= 48;
@@ -1185,28 +1185,6 @@ uint64_t u56_to_u64(const uint8_t *value) {
     x |= value[6];
 
     return x;
-}
-
-/* @Shahbaz: */
-uint64_t be64_to_u64(ovs_be64 value) {
-    const uint8_t *valuep = (const uint8_t *)&value;
-    uint64_t x = 0;
-    
-    x |= valuep[0]; x <<= 56;
-    x |= valuep[1]; x <<= 48;
-    x |= valuep[2]; x <<= 40;
-    x |= valuep[3]; x <<= 32;
-    x |= valuep[4]; x <<= 24;
-    x |= valuep[5]; x <<= 16;
-    x |= valuep[6]; x <<= 8;
-    x |= valuep[7];
-
-    return x;
-}
-
-/* @Shahbaz: */
-ovs_be64 u64_to_be64(uint64_t value) {
-    return be64_to_u64(value);
 }
 
 /* @Shahbaz: */
