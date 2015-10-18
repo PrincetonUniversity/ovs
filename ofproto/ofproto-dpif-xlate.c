@@ -4149,14 +4149,71 @@ OVS_COMPOSE_AND_XLATE_FUNCS /* @Shahbaz: */
 
 /* @Shahbaz: */
 static void 
-compose_sub_from_field_(struct xlate_ctx *ctx, enum ovs_key_attr key,
-                        const void *value, size_t size)
-{
+compose_calc_fields_verify(struct xlate_ctx *ctx, 
+                           const struct ofpact_calc_fields_verify *calc_fields_verify) 
+{ 
+    struct flow_wildcards *wc = ctx->wc;
+    struct flow *flow = &ctx->xin->flow;
     bool use_masked = ctx->xbridge->support.masked_set_action; 
     ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
                                           ctx->odp_actions, ctx->wc, 
                                           use_masked); 
+    size_t i;
     
+    size_t offset = nl_msg_start_nested(ctx->odp_actions,
+                                        OVS_ACTION_ATTR_CALC_FIELDS_VERIFY);
+    
+    switch (calc_fields_verify->dst_field_id) {
+    case MFF_ETHERNET__ETHERTYPE:
+        nl_msg_put_flag(ctx->odp_actions, OVS_KEY_ATTR_ETHERNET__ETHERTYPE);
+        break;
+        
+    case MFF_N_IDS:
+    default:
+        OVS_NOT_REACHED();
+    }
+    
+    switch(calc_fields_verify->algorithm) {
+    case CF_ALGO_CSUM16:
+        nl_msg_put_u16(ctx->odp_actions, OVS_KEY_ATTR_UNSPEC, OVS_CF_ALGO_CSUM16);
+        break;
+
+    default:
+        OVS_NOT_REACHED();
+    }
+    
+    nl_msg_put_u16(ctx->odp_actions, OVS_KEY_ATTR_UNSPEC, calc_fields_verify->n_fields);
+    
+    size_t fields_offset = nl_msg_start_nested(ctx->odp_actions,
+                                               OVS_KEY_ATTR_UNSPEC);
+    
+    for (i = 0; i < calc_fields_verify->n_fields; i++) {
+        switch (calc_fields_verify->src_field_ids[i]) {
+        case MFF_ETHERNET__DSTADDR:
+            nl_msg_put_flag(ctx->odp_actions, OVS_KEY_ATTR_ETHERNET__DSTADDR);
+            break;
+        case MFF_ETHERNET__SRCADDR:
+            nl_msg_put_flag(ctx->odp_actions, OVS_KEY_ATTR_ETHERNET__SRCADDR);
+            break;
+        case MFF_ETHERNET__ETHERTYPE:
+            nl_msg_put_flag(ctx->odp_actions, OVS_KEY_ATTR_ETHERNET__ETHERTYPE);
+            break;
+
+        case MFF_N_IDS:
+        default:
+            OVS_NOT_REACHED();
+        }
+    }
+    
+    nl_msg_end_nested(ctx->odp_actions, fields_offset);
+    nl_msg_end_nested(ctx->odp_actions, offset);
+}
+
+/* @Shahbaz: */
+static void 
+compose_sub_from_field_(struct xlate_ctx *ctx, enum ovs_key_attr key,
+                        const void *value, size_t size)
+{
     size_t offset = nl_msg_start_nested(ctx->odp_actions,
                                         OVS_ACTION_ATTR_SUB_FROM_FIELD);
     char *data = nl_msg_put_unspec_uninit(ctx->odp_actions, key, size);
@@ -4170,6 +4227,11 @@ compose_sub_from_field(struct xlate_ctx *ctx,
 { 
     struct flow_wildcards *wc = ctx->wc;
     struct flow *flow = &ctx->xin->flow;
+    bool use_masked = ctx->xbridge->support.masked_set_action; 
+    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
+                                          ctx->odp_actions, ctx->wc, 
+                                          use_masked); 
+    
     
     const struct mf_field *mf = sub_from_field->field;
     const union mf_value *value = &sub_from_field->value;
@@ -4196,11 +4258,6 @@ static void
 compose_add_to_field_(struct xlate_ctx *ctx, enum ovs_key_attr key,
                      const void *value, size_t size)
 {
-    bool use_masked = ctx->xbridge->support.masked_set_action; 
-    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
-                                          ctx->odp_actions, ctx->wc, 
-                                          use_masked); 
-    
     size_t offset = nl_msg_start_nested(ctx->odp_actions,
                                         OVS_ACTION_ATTR_ADD_TO_FIELD);
     char *data = nl_msg_put_unspec_uninit(ctx->odp_actions, key, size);
@@ -4214,6 +4271,10 @@ compose_add_to_field(struct xlate_ctx *ctx,
 { 
     struct flow_wildcards *wc = ctx->wc;
     struct flow *flow = &ctx->xin->flow;
+    bool use_masked = ctx->xbridge->support.masked_set_action; 
+    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
+                                          ctx->odp_actions, ctx->wc, 
+                                          use_masked); 
     
     const struct mf_field *mf = add_to_field->field;
     const union mf_value *value = &add_to_field->value;
@@ -4646,6 +4707,14 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
             break;
 
         OVS_DO_XLATE_ACTIONS_CASES /* @Shahbaz: */
+                    
+        /* @Shahbaz: */
+        case OFPACT_CALC_FIELDS_VERIFY: {
+            const struct ofpact_calc_fields_verify *calc_fields_verify;
+            calc_fields_verify = ofpact_get_CALC_FIELDS_VERIFY(a);
+            compose_calc_fields_verify(ctx, calc_fields_verify);
+            break;
+        }
                     
         /* @Shahbaz: */
         case OFPACT_SUB_FROM_FIELD: {

@@ -1392,28 +1392,91 @@ format_SUB_FROM_FIELD(const struct ofpact_sub_from_field *sff, struct ds *s)
 }
 
 /* @Shahbaz: */
-/* TODO: handle error checks.
+/* TODO: 1) handle error checks.
+ *       2) handle metadata fields.
  */
 struct ofp_action_calc_fields_verify {
     ovs_be16 type;
     ovs_be16 len;
 
-    uint8_t pad[4];
+    ovs_be16 dst_field_id;
+    ovs_be16 algorithm;
+    ovs_be16 n_fields;
+    
+    uint8_t zero[6];
 };
-OFP_ASSERT(sizeof(struct ofp_action_calc_fields_verify) == 8);
+OFP_ASSERT(sizeof(struct ofp_action_calc_fields_verify) == 16);
+
+static enum ofperr
+decode_calc_fields_verify(const struct ofp_action_calc_fields_verify *a,
+                          struct ofpbuf *ofpacts)
+{
+    static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(1, 5);
+    struct ofpact_calc_fields_verify *cfv;
+    size_t fields_size, i;
+    enum ofperr error;
+
+    cfv = ofpact_put_CALC_FIELDS_VERIFY(ofpacts);
+    cfv->dst_field_id = ntohs(a->dst_field_id);
+    cfv->algorithm = ntohs(a->algorithm);
+    cfv->n_fields = ntohs(a->n_fields);
+    fields_size = ntohs(a->len) - sizeof *a;
+
+    error = OFPERR_OFPBAC_BAD_ARGUMENT;
+    if (cfv->n_fields > MAX_CALC_FIELDS) {
+        VLOG_WARN_RL(&rl, "too many src fields");
+    } else {
+        error = 0;
+    }
+
+    if (!is_all_zeros(a->zero, sizeof a->zero)) {
+        VLOG_WARN_RL(&rl, "reserved field is nonzero");
+        error = OFPERR_OFPBAC_BAD_ARGUMENT;
+    }
+
+    if (fields_size < cfv->n_fields * sizeof(ovs_be16)) {
+        error = OFPERR_OFPBAC_BAD_LEN;
+    }
+
+    for (i = 0; i < cfv->n_fields; i++) {
+        enum mf_field_id src_field_id = ntohs(((ovs_be16 *)(a + 1))[i]);
+        ofpbuf_put(ofpacts, &src_field_id, sizeof(enum mf_field_id));
+    }
+
+    cfv = ofpacts->header;
+    ofpact_update_len(ofpacts, &cfv->ofpact);
+
+    return error;
+}
 
 static enum ofperr
 decode_OFPAT_RAW_CALC_FIELDS_VERIFY(const struct ofp_action_calc_fields_verify *a,
                                     struct ofpbuf *out)
 {
-    
+    return decode_calc_fields_verify(a, out);
 }
 
 static void
 encode_CALC_FIELDS_VERIFY(const struct ofpact_calc_fields_verify *cfv,
                           enum ofp_version ofp_version OVS_UNUSED, struct ofpbuf *out)
 {
-    
+    if (ofp_version >= OFP15_VERSION) {
+        int fields_len = ROUND_UP(2 * cfv->n_fields, OFP_ACTION_ALIGN);
+        struct ofp_action_calc_fields_verify *a;
+        ovs_be16 *src_field_ids;
+        size_t i;
+
+        a = put_OFPAT_CALC_FIELDS_VERIFY(out);
+        a->len = htons(ntohs(a->len) + fields_len);
+        a->dst_field_id = htons(cfv->dst_field_id);
+        a->algorithm = htons(cfv->algorithm);
+        a->n_fields = htons(cfv->n_fields);       
+
+        src_field_ids = ofpbuf_put_zeros(out, fields_len);
+        for (i = 0; i < cfv->n_fields; i++) {
+            src_field_ids[i] = htons(cfv->src_field_ids[i]);
+        }
+    }
 }
 
 static char * OVS_WARN_UNUSED_RESULT
@@ -1435,7 +1498,6 @@ calc_fields_verify_parse__(const char *s, char **save_ptr,
     cfv = ofpact_put_CALC_FIELDS_VERIFY(ofpacts);
 
     for (;;) {
-        const enum mf_field_id mf_id;
         char *src_field;
         
         src_field = strtok_r(NULL, ", []", save_ptr);
@@ -1451,7 +1513,7 @@ calc_fields_verify_parse__(const char *s, char **save_ptr,
     ofpact_update_len(ofpacts, &cfv->ofpact);
 
     if (!strcasecmp(algorithm, "csum16")) {
-        cfv->algorithm = CSUM16;
+        cfv->algorithm = CF_ALGO_CSUM16;
     } else {
         return xasprintf("%s: unknown algorithm `%s'", s, algorithm);
     }
@@ -1491,9 +1553,40 @@ parse_CALC_FIELDS_VERIFY(const char *arg, struct ofpbuf *ofpacts,
 }
 
 static void
+calc_fields_verify_format(const struct ofpact_calc_fields_verify *cfv, struct ds *s)
+{
+    const char *dst_field, *algorithm, *src_field;
+    size_t i;
+
+    dst_field = mf_from_id(cfv->dst_field_id)->name;
+
+    switch (cfv->algorithm) {
+    case CF_ALGO_CSUM16:
+        algorithm = "csum16";
+        break;
+    default:
+        algorithm = "<unknown>";
+    }
+
+    ds_put_format(s, "calc_fields_verify(%s,%s,", dst_field, algorithm);
+
+    ds_put_cstr(s, "fields:");
+    for (i = 0; i < cfv->n_fields; i++) {
+        if (i) {
+            ds_put_cstr(s, ",");
+        }
+        
+        src_field = mf_from_id(cfv->src_field_ids[i])->name;
+        ds_put_cstr(s, src_field);
+    }
+
+    ds_put_cstr(s, ")");
+}
+
+static void
 format_CALC_FIELDS_VERIFY(const struct ofpact_calc_fields_verify *a, struct ds *s)
 {
-    
+    calc_fields_verify_format(a, s);
 }
 
 /* Action structure for NXAST_OUTPUT_REG.
@@ -5640,6 +5733,7 @@ ofpact_is_set_or_move_action(const struct ofpact *a)
     OVS_IS_SET_OR_MOVE_ACTION_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_CALC_FIELDS_VERIFY:
     case OFPACT_SUB_FROM_FIELD:
     case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:  
@@ -5721,6 +5815,7 @@ ofpact_is_allowed_in_actions_set(const struct ofpact *a)
     OVS_IS_ALLOWED_IN_ACTIONS_SET_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OFPACT_CALC_FIELDS_VERIFY:
     case OFPACT_SUB_FROM_FIELD:
     case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:
@@ -5895,6 +5990,7 @@ ovs_instruction_type_from_ofpact_type(enum ofpact_type type)
     OVS_INSTRUCTION_TYPE_FROM_OFPACT_TYPE_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_CALC_FIELDS_VERIFY:
     case OFPACT_SUB_FROM_FIELD:
     case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:
@@ -6548,6 +6644,7 @@ ofpact_check__(enum ofputil_protocol *usable_protocols, struct ofpact *a,
     OVS_CHECK___CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_CALC_FIELDS_VERIFY:
     case OFPACT_SUB_FROM_FIELD:
     case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:
@@ -6940,6 +7037,7 @@ ofpact_outputs_to_port(const struct ofpact *ofpact, ofp_port_t port)
     OVS_OUTPUTS_TO_PORT_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */
+    case OFPACT_CALC_FIELDS_VERIFY:
     case OFPACT_SUB_FROM_FIELD:
     case OFPACT_ADD_TO_FIELD:
     case OFPACT_ADD_HEADER:

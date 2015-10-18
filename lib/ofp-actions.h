@@ -464,7 +464,7 @@ struct ofpact_sub_from_field {
 
 /* @Shahbaz: calculated fields algorithm to apply. */
 enum cf_algorithm {
-    CSUM16 = 0,
+    CF_ALGO_CSUM16 = 0,
 };
 
 /* @Shahbaz: */

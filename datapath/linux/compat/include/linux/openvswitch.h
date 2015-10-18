@@ -718,6 +718,7 @@ enum ovs_action_attr {
 	OVS_ACTION_ATTR_TUNNEL_POP,    /* u32 port number. */
 	OVS_ACTION_ATTRS               /* @Shahbaz: */
         /* @Shahbaz: */
+        OVS_ACTION_ATTR_CALC_FIELDS_VERIFY,
         OVS_ACTION_ATTR_SUB_FROM_FIELD,
         OVS_ACTION_ATTR_ADD_TO_FIELD,
         OVS_ACTION_ATTR_ADD_HEADER,
@@ -735,5 +736,10 @@ enum ovs_action_attr {
 };
 
 #define OVS_ACTION_ATTR_MAX (__OVS_ACTION_ATTR_MAX - 1)
+
+/* @Shahbaz: */
+enum ovs_cf_algorithm {
+    OVS_CF_ALGO_CSUM16 = 0,
+};
 
 #endif /* _LINUX_OPENVSWITCH_H */
