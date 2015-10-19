@@ -1077,6 +1077,11 @@ void add_header(struct dp_packet *packet, const struct nlattr *a)
     
     switch((enum ovs_key_attr) key) {
     OVS_ADD_HEADER_CASES
+    
+    case OVS_KEY_ATTR_UNSPEC:
+    case __OVS_KEY_ATTR_MAX:
+    default:
+        OVS_NOT_REACHED();
     }
 }
 
@@ -1087,6 +1092,11 @@ void remove_header(struct dp_packet *packet, const struct nlattr *a)
     
     switch((enum ovs_key_attr) key) {
     OVS_REMOVE_HEADER_CASES
+    
+    case OVS_KEY_ATTR_UNSPEC:
+    case __OVS_KEY_ATTR_MAX:
+    default:
+        OVS_NOT_REACHED();
     }
 }
 

@@ -642,7 +642,52 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
     
     /* @Shahbaz: complete this. */
     case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY:
-        ds_put_cstr(ds, "calc_fields_verify()");
+                                                              a = nl_attr_get(a);
+        enum ovs_key_attr dst_field_key = nl_attr_type(a);    a = nl_attr_next(a); 
+        enum ovs_cf_algorithm algorithm = nl_attr_get_u16(a); a = nl_attr_next(a);      
+                                                              a = nl_attr_next(a); 
+    
+        ds_put_cstr(ds, "calc_fields_verify(");
+                                                              
+        switch (dst_field_key) {
+        OVS_FORMAT_ODP_ACTION_CALC_FIELDS_VERIFY_CASES
+        
+        case OVS_KEY_ATTR_UNSPEC:
+        case __OVS_KEY_ATTR_MAX:
+        default:
+            OVS_NOT_REACHED();
+        }
+        
+        ds_put_char(ds, ',');
+        
+        switch (algorithm) {
+        case OVS_CF_ALGO_CSUM16:
+            ds_put_cstr(ds, "csum16");
+            break;
+            
+        default:
+            OVS_NOT_REACHED();
+        }
+        
+        ds_put_cstr(ds, ",fields:");
+                                                              
+        const struct nlattr *a_;    
+        size_t left;
+        NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
+            switch ((enum ovs_key_attr) nl_attr_type(a_)) {
+            OVS_FORMAT_ODP_ACTION_CALC_FIELDS_VERIFY_CASES
+            
+            case OVS_KEY_ATTR_UNSPEC:
+            case __OVS_KEY_ATTR_MAX:
+            default:
+                OVS_NOT_REACHED();
+            }
+            
+            ds_put_char(ds, ',');
+        }
+        
+        ds_truncate(ds, ds->length - 1);
+        ds_put_char(ds, ')');
         break;
                 
     /* @Shahbaz: */
@@ -675,6 +720,11 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         
         switch((enum ovs_key_attr) key) {
         OVS_FORMAT_ODP_ACTION_ADD_HEADER_CASES
+        
+        case OVS_KEY_ATTR_UNSPEC:
+        case __OVS_KEY_ATTR_MAX:
+        default:
+            OVS_NOT_REACHED();
         }
         
         ds_put_char(ds, ')');   
@@ -689,6 +739,11 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         
         switch((enum ovs_key_attr) key) {
         OVS_FORMAT_ODP_ACTION_REMOVE_HEADER_CASES
+        
+        case OVS_KEY_ATTR_UNSPEC:
+        case __OVS_KEY_ATTR_MAX:
+        default:
+            OVS_NOT_REACHED();
         }
         
         ds_put_char(ds, ')');   

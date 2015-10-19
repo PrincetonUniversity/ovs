@@ -1424,7 +1424,7 @@ decode_calc_fields_verify(const struct ofp_action_calc_fields_verify *a,
 
     error = OFPERR_OFPBAC_BAD_ARGUMENT;
     if (cfv->n_fields > MAX_CALC_FIELDS) {
-        VLOG_WARN_RL(&rl, "too many src fields");
+        VLOG_WARN_RL(&rl, "too many fields");
     } else {
         error = 0;
     }

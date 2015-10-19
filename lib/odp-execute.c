@@ -488,7 +488,7 @@ apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
 OVS_ODP_EXECUTE_FUNCS /* Shahbaz: */
 
 /* @Shahbaz: */
-// For now assuming a fixed length buffer for the csum (MAX_CALC_FIELDS)
+// For now assuming a fixed length buffer for the csum (of size MAX_CALC_FIELDS)
 #define MAX_CALC_FIELDS 64
 uint8_t calc_fields_verify_buf[MAX_CALC_FIELDS];
 
@@ -497,7 +497,6 @@ odp_execute_calc_fields_verify(struct dp_packet *packet,
                                const struct nlattr *a)
 {
     enum ovs_key_attr dst_field_key = nl_attr_type(a);    a = nl_attr_next(a); 
-    /* @Shahbaz: update this. */
     enum ovs_cf_algorithm algorithm = nl_attr_get_u16(a); a = nl_attr_next(a);      
     uint16_t n_fields = nl_attr_get_u16(a);               a = nl_attr_next(a); 
     
@@ -506,18 +505,10 @@ odp_execute_calc_fields_verify(struct dp_packet *packet,
     uint8_t *buf = calc_fields_verify_buf;
     
     NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
-        enum ovs_key_attr src_field_key = nl_attr_type(a_);
-        switch (src_field_key) {
-        case OVS_KEY_ATTR_ETHERNET__DSTADDR:
-            memcpy(buf, &packet->ethernet_.ethernet__dstAddr, sizeof packet->ethernet_.ethernet__dstAddr);
-            buf += sizeof packet->ethernet_.ethernet__dstAddr;
-            break;
-        case OVS_KEY_ATTR_ETHERNET__SRCADDR:
-            memcpy(buf, &packet->ethernet_.ethernet__srcAddr, sizeof packet->ethernet_.ethernet__srcAddr);
-            buf += sizeof packet->ethernet_.ethernet__srcAddr;
-            break;
+        switch ((enum ovs_key_attr) nl_attr_type(a_)) {
+        OVS_ODP_EXECUTE_CALC_FIELDS_VERIFY_SRC_FIELDS_CASES
             
-        case OVS_ACTION_ATTR_UNSPEC:
+        case OVS_KEY_ATTR_UNSPEC:
         case __OVS_KEY_ATTR_MAX:
         default:
             OVS_NOT_REACHED();
@@ -526,16 +517,20 @@ odp_execute_calc_fields_verify(struct dp_packet *packet,
     
     n_bytes = buf - calc_fields_verify_buf;
     
-    switch (dst_field_key) {
-    case OVS_KEY_ATTR_ETHERNET__ETHERTYPE: {
-        ovs_be16 csum_ = csum(calc_fields_verify_buf, n_bytes);
-        if (packet->ethernet_.ethernet__etherType == csum_)
-            return true;
-        else
-            return false;
+    switch(algorithm) {
+    case OVS_CF_ALGO_CSUM16: {
+        ovs_be16 res16 = csum(calc_fields_verify_buf, n_bytes);
+    
+        switch (dst_field_key) {
+        OVS_ODP_EXECUTE_CALC_FIELDS_VERIFY_DST_FIELD_16BIT_CASES
+        
+        case OVS_KEY_ATTR_UNSPEC:
+        case __OVS_KEY_ATTR_MAX:
+        default:
+            OVS_NOT_REACHED();
+        }    
     }
-    case OVS_ACTION_ATTR_UNSPEC:
-    case __OVS_KEY_ATTR_MAX:
+
     default:
         OVS_NOT_REACHED();
     }
@@ -551,7 +546,7 @@ odp_execute_sub_from_field(struct dp_packet *packet,
     switch (key) {
     OVS_ODP_EXECUTE_SUB_FROM_FIELD_CASES /* @Shahbaz: */
 
-    case OVS_ACTION_ATTR_UNSPEC:
+    case OVS_KEY_ATTR_UNSPEC:
     case __OVS_KEY_ATTR_MAX:
     default:
         OVS_NOT_REACHED();
@@ -568,7 +563,7 @@ odp_execute_add_to_field(struct dp_packet *packet,
     switch (key) {
     OVS_ODP_EXECUTE_ADD_TO_FIELD_CASES /* @Shahbaz: */
 
-    case OVS_ACTION_ATTR_UNSPEC:
+    case OVS_KEY_ATTR_UNSPEC:
     case __OVS_KEY_ATTR_MAX:
     default:
         OVS_NOT_REACHED();

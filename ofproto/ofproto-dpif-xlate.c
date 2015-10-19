@@ -4105,6 +4105,7 @@ recirc_unroll_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         OVS_RECIRC_UNROLL_ACTIONS_CASES /* @Shahbaz: */
                     
         /* @Shahbaz: */
+        case OFPACT_CALC_FIELDS_VERIFY:
         case OFPACT_SUB_FROM_FIELD:
         case OFPACT_ADD_TO_FIELD:
         case OFPACT_ADD_HEADER:
@@ -4164,9 +4165,7 @@ compose_calc_fields_verify(struct xlate_ctx *ctx,
                                         OVS_ACTION_ATTR_CALC_FIELDS_VERIFY);
     
     switch (calc_fields_verify->dst_field_id) {
-    case MFF_ETHERNET__ETHERTYPE:
-        nl_msg_put_flag(ctx->odp_actions, OVS_KEY_ATTR_ETHERNET__ETHERTYPE);
-        break;
+    OVS_COMPOSE_CALC_FIELDS_VERIFY_CASES
         
     case MFF_N_IDS:
     default:
@@ -4189,15 +4188,7 @@ compose_calc_fields_verify(struct xlate_ctx *ctx,
     
     for (i = 0; i < calc_fields_verify->n_fields; i++) {
         switch (calc_fields_verify->src_field_ids[i]) {
-        case MFF_ETHERNET__DSTADDR:
-            nl_msg_put_flag(ctx->odp_actions, OVS_KEY_ATTR_ETHERNET__DSTADDR);
-            break;
-        case MFF_ETHERNET__SRCADDR:
-            nl_msg_put_flag(ctx->odp_actions, OVS_KEY_ATTR_ETHERNET__SRCADDR);
-            break;
-        case MFF_ETHERNET__ETHERTYPE:
-            nl_msg_put_flag(ctx->odp_actions, OVS_KEY_ATTR_ETHERNET__ETHERTYPE);
-            break;
+        OVS_COMPOSE_CALC_FIELDS_VERIFY_CASES
 
         case MFF_N_IDS:
         default:
