@@ -129,6 +129,7 @@
     OFPACT(ADD_TO_FIELD,    ofpact_add_to_field, ofpact, "add_to_field") \
     OFPACT(SUB_FROM_FIELD,  ofpact_sub_from_field, ofpact, "sub_from_field") \
     OFPACT(CALC_FIELDS_VERIFY, ofpact_calc_fields_verify, ofpact, "calc_fields_verify") \
+    OFPACT(CALC_FIELDS_UPDATE, ofpact_calc_fields_update, ofpact, "calc_fields_update") \
     OVS_OFPACTS
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
@@ -474,6 +475,17 @@ enum cf_algorithm {
 /* OFPACT_CALC_FIELDS_VERIFY.
  */
 struct ofpact_calc_fields_verify {
+    struct ofpact ofpact;
+    enum mf_field_id dst_field_id;
+    enum cf_algorithm algorithm;
+    unsigned int n_fields;
+    enum mf_field_id src_field_ids[];
+};
+
+/* @Shahbaz: */
+/* OFPACT_CALC_FIELDS_UPDATE.
+ */
+struct ofpact_calc_fields_update {
     struct ofpact ofpact;
     enum mf_field_id dst_field_id;
     enum cf_algorithm algorithm;
