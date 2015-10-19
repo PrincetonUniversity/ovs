@@ -120,6 +120,7 @@ odp_action_len(uint16_t type)
     OVS_ACTION_LEN_CASES /* @Shahbaz: */
     
     /* @Shahbaz: */
+    case OVS_ACTION_ATTR_CALC_FIELDS_UPDATE: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_SUB_FROM_FIELD: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_ADD_TO_FIELD: return ATTR_LEN_VARIABLE;
@@ -640,17 +641,17 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
 
     OVS_FORMAT_ODP_ACTION_CASES /* @Shahbaz: */
     
-    /* @Shahbaz: complete this. */
-    case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY:
+    /* @Shahbaz: */
+    case OVS_ACTION_ATTR_CALC_FIELDS_UPDATE: {
                                                               a = nl_attr_get(a);
         enum ovs_key_attr dst_field_key = nl_attr_type(a);    a = nl_attr_next(a); 
         enum ovs_cf_algorithm algorithm = nl_attr_get_u16(a); a = nl_attr_next(a);      
                                                               a = nl_attr_next(a); 
     
-        ds_put_cstr(ds, "calc_fields_verify(");
+        ds_put_cstr(ds, "calc_fields_update(");
                                                               
         switch (dst_field_key) {
-        OVS_FORMAT_ODP_ACTION_CALC_FIELDS_VERIFY_CASES
+        OVS_FORMAT_ODP_ACTION_CALC_FIELDS_CASES
         
         case OVS_KEY_ATTR_UNSPEC:
         case __OVS_KEY_ATTR_MAX:
@@ -666,7 +667,8 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
             break;
             
         default:
-            OVS_NOT_REACHED();
+            ds_put_cstr(ds, "<unknown>");
+            break;
         }
         
         ds_put_cstr(ds, ",fields:");
@@ -675,7 +677,7 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         size_t left;
         NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
             switch ((enum ovs_key_attr) nl_attr_type(a_)) {
-            OVS_FORMAT_ODP_ACTION_CALC_FIELDS_VERIFY_CASES
+            OVS_FORMAT_ODP_ACTION_CALC_FIELDS_CASES
             
             case OVS_KEY_ATTR_UNSPEC:
             case __OVS_KEY_ATTR_MAX:
@@ -689,6 +691,59 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         ds_truncate(ds, ds->length - 1);
         ds_put_char(ds, ')');
         break;
+    }            
+                
+    /* @Shahbaz: */
+    case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY: {
+                                                              a = nl_attr_get(a);
+        enum ovs_key_attr dst_field_key = nl_attr_type(a);    a = nl_attr_next(a); 
+        enum ovs_cf_algorithm algorithm = nl_attr_get_u16(a); a = nl_attr_next(a);      
+                                                              a = nl_attr_next(a); 
+    
+        ds_put_cstr(ds, "calc_fields_verify(");
+                                                              
+        switch (dst_field_key) {
+        OVS_FORMAT_ODP_ACTION_CALC_FIELDS_CASES
+        
+        case OVS_KEY_ATTR_UNSPEC:
+        case __OVS_KEY_ATTR_MAX:
+        default:
+            OVS_NOT_REACHED();
+        }
+        
+        ds_put_char(ds, ',');
+        
+        switch (algorithm) {
+        case OVS_CF_ALGO_CSUM16:
+            ds_put_cstr(ds, "csum16");
+            break;
+            
+        default:
+            ds_put_cstr(ds, "<unknown>");
+            break;
+        }
+        
+        ds_put_cstr(ds, ",fields:");
+                                                              
+        const struct nlattr *a_;    
+        size_t left;
+        NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
+            switch ((enum ovs_key_attr) nl_attr_type(a_)) {
+            OVS_FORMAT_ODP_ACTION_CALC_FIELDS_CASES
+            
+            case OVS_KEY_ATTR_UNSPEC:
+            case __OVS_KEY_ATTR_MAX:
+            default:
+                OVS_NOT_REACHED();
+            }
+            
+            ds_put_char(ds, ',');
+        }
+        
+        ds_truncate(ds, ds->length - 1);
+        ds_put_char(ds, ')');
+        break;
+    }
                 
     /* @Shahbaz: */
     case OVS_ACTION_ATTR_SUB_FROM_FIELD:
