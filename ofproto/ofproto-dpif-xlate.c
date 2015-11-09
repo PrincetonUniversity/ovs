@@ -4139,8 +4139,8 @@ OVS_COMPOSE_AND_XLATE_FUNCS /* @Shahbaz: */
 
 /* @Shahbaz: */
 static void 
-compose_calc_fields_update(struct xlate_ctx *ctx, 
-                           const struct ofpact_calc_fields_update *calc_fields_update) 
+compose_calc_fields_verify(struct xlate_ctx *ctx, 
+                           const struct ofpact_calc_fields *cf) 
 { 
     struct flow_wildcards *wc = ctx->wc;
     struct flow *flow = &ctx->xin->flow;
@@ -4148,12 +4148,12 @@ compose_calc_fields_update(struct xlate_ctx *ctx,
     ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
                                           ctx->odp_actions, ctx->wc, 
                                           use_masked); 
+    
     size_t i;
-    
     size_t offset = nl_msg_start_nested(ctx->odp_actions,
-                                        OVS_ACTION_ATTR_CALC_FIELDS_UPDATE);
+                                        OVS_ACTION_ATTR_CALC_FIELDS_VERIFY);
     
-    switch (calc_fields_update->dst_field_id) {
+    switch (cf->dst_field_id) {
     OVS_COMPOSE_CALC_FIELDS_CASES
         
     case MFF_N_IDS:
@@ -4161,22 +4161,22 @@ compose_calc_fields_update(struct xlate_ctx *ctx,
         OVS_NOT_REACHED();
     }
     
-    switch(calc_fields_update->algorithm) {
+    switch(cf->algorithm) {
     case CF_ALGO_CSUM16:
-        nl_msg_put_u16(ctx->odp_actions, OVS_KEY_ATTR_UNSPEC, OVS_CF_ALGO_CSUM16);
+        nl_msg_put_u16(ctx->odp_actions, OVS_CALC_FIELD_ATTR_UNSPEC, OVS_CF_ALGO_CSUM16);
         break;
 
     default:
         OVS_NOT_REACHED();
     }
     
-    nl_msg_put_u16(ctx->odp_actions, OVS_KEY_ATTR_UNSPEC, calc_fields_update->n_fields);
+    nl_msg_put_u16(ctx->odp_actions, OVS_CALC_FIELD_ATTR_UNSPEC, cf->n_fields);
+
+    size_t f_offset = nl_msg_start_nested(ctx->odp_actions,
+                                          OVS_CALC_FIELD_ATTR_UNSPEC);
     
-    size_t fields_offset = nl_msg_start_nested(ctx->odp_actions,
-                                               OVS_KEY_ATTR_UNSPEC);
-    
-    for (i = 0; i < calc_fields_update->n_fields; i++) {
-        switch (calc_fields_update->src_field_ids[i]) {
+    for (i = 0; i < cf->n_fields; i++) {
+        switch (cf->src_field_ids[i]) {
         OVS_COMPOSE_CALC_FIELDS_CASES
 
         case MFF_N_IDS:
@@ -4185,14 +4185,14 @@ compose_calc_fields_update(struct xlate_ctx *ctx,
         }
     }
     
-    nl_msg_end_nested(ctx->odp_actions, fields_offset);
+    nl_msg_end_nested(ctx->odp_actions, f_offset);
     nl_msg_end_nested(ctx->odp_actions, offset);
 }
 
 /* @Shahbaz: */
 static void 
-compose_calc_fields_verify(struct xlate_ctx *ctx, 
-                           const struct ofpact_calc_fields_verify *calc_fields_verify) 
+compose_calc_fields_update(struct xlate_ctx *ctx, 
+                           const struct ofpact_calc_fields *cf) 
 { 
     struct flow_wildcards *wc = ctx->wc;
     struct flow *flow = &ctx->xin->flow;
@@ -4200,12 +4200,12 @@ compose_calc_fields_verify(struct xlate_ctx *ctx,
     ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
                                           ctx->odp_actions, ctx->wc, 
                                           use_masked); 
+    
     size_t i;
-    
     size_t offset = nl_msg_start_nested(ctx->odp_actions,
-                                        OVS_ACTION_ATTR_CALC_FIELDS_VERIFY);
+                                        OVS_ACTION_ATTR_CALC_FIELDS_UPDATE);
     
-    switch (calc_fields_verify->dst_field_id) {
+    switch (cf->dst_field_id) {
     OVS_COMPOSE_CALC_FIELDS_CASES
         
     case MFF_N_IDS:
@@ -4213,22 +4213,22 @@ compose_calc_fields_verify(struct xlate_ctx *ctx,
         OVS_NOT_REACHED();
     }
     
-    switch(calc_fields_verify->algorithm) {
+    switch(cf->algorithm) {
     case CF_ALGO_CSUM16:
-        nl_msg_put_u16(ctx->odp_actions, OVS_KEY_ATTR_UNSPEC, OVS_CF_ALGO_CSUM16);
+        nl_msg_put_u16(ctx->odp_actions, OVS_CALC_FIELD_ATTR_UNSPEC, OVS_CF_ALGO_CSUM16);
         break;
 
     default:
         OVS_NOT_REACHED();
     }
     
-    nl_msg_put_u16(ctx->odp_actions, OVS_KEY_ATTR_UNSPEC, calc_fields_verify->n_fields);
+    nl_msg_put_u16(ctx->odp_actions, OVS_CALC_FIELD_ATTR_UNSPEC, cf->n_fields);
     
-    size_t fields_offset = nl_msg_start_nested(ctx->odp_actions,
-                                               OVS_KEY_ATTR_UNSPEC);
+    size_t f_offset = nl_msg_start_nested(ctx->odp_actions,
+                                          OVS_CALC_FIELD_ATTR_UNSPEC);
     
-    for (i = 0; i < calc_fields_verify->n_fields; i++) {
-        switch (calc_fields_verify->src_field_ids[i]) {
+    for (i = 0; i < cf->n_fields; i++) {
+        switch (cf->src_field_ids[i]) {
         OVS_COMPOSE_CALC_FIELDS_CASES
 
         case MFF_N_IDS:
@@ -4237,7 +4237,7 @@ compose_calc_fields_verify(struct xlate_ctx *ctx,
         }
     }
     
-    nl_msg_end_nested(ctx->odp_actions, fields_offset);
+    nl_msg_end_nested(ctx->odp_actions, f_offset);
     nl_msg_end_nested(ctx->odp_actions, offset);
 }
 
@@ -4711,22 +4711,6 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         OVS_DO_XLATE_ACTIONS_CASES /* @Shahbaz: */
                     
         /* @Shahbaz: */
-        case OFPACT_CALC_FIELDS_UPDATE: {
-            const struct ofpact_calc_fields_update *calc_fields_update;
-            calc_fields_update = ofpact_get_CALC_FIELDS_UPDATE(a);
-            compose_calc_fields_update(ctx, calc_fields_update);
-            break;
-        }
-                    
-        /* @Shahbaz: */
-        case OFPACT_CALC_FIELDS_VERIFY: {
-            const struct ofpact_calc_fields_verify *calc_fields_verify;
-            calc_fields_verify = ofpact_get_CALC_FIELDS_VERIFY(a);
-            compose_calc_fields_verify(ctx, calc_fields_verify);
-            break;
-        }
-                    
-        /* @Shahbaz: */
         case OFPACT_SUB_FROM_FIELD: {
             const struct ofpact_sub_from_field *sub_from_field;
             sub_from_field = ofpact_get_SUB_FROM_FIELD(a);
@@ -4741,21 +4725,28 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
             compose_add_to_field(ctx, add_to_field);
             break;
         }
+          
+        /* @Shahbaz: */
+        case OFPACT_CALC_FIELDS_UPDATE: {
+            const struct ofpact_calc_fields *calc_fields;
+            calc_fields = ofpact_get_CALC_FIELDS_UPDATE(a);
+            compose_calc_fields_update(ctx, calc_fields);
+            break;
+        }
+        
+        /* @Shahbaz: */
+        case OFPACT_CALC_FIELDS_VERIFY: {
+            const struct ofpact_calc_fields *calc_fields;
+            calc_fields = ofpact_get_CALC_FIELDS_VERIFY(a);
+            compose_calc_fields_verify(ctx, calc_fields);
+            break;
+        }
                     
         /* @Shahbaz: */
-        case OFPACT_MODIFY_FIELD: {
+        case OFPACT_MODIFY_FIELD:
+        case OFPACT_REMOVE_HEADER:
+        case OFPACT_ADD_HEADER:
             break;
-        }
-        
-        /* @Shahbaz: */
-        case OFPACT_REMOVE_HEADER: {
-            break;
-        }
-        
-        /* @Shahbaz: */
-        case OFPACT_ADD_HEADER: {
-            break;
-        }
         
         /* @Shahbaz: */
         case OFPACT_DEPARSE:

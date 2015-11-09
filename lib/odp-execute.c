@@ -477,77 +477,28 @@ odp_execute_sample(void *dp, struct dp_packet *packet, bool steal,
 OVS_ODP_EXECUTE_FUNCS /* Shahbaz: */
 
 /* @Shahbaz: */
-#define MAX_CALC_FIELDS 64
-
-/* @Shahbaz: */
-// For now assuming a fixed length buffer for the csum (of size MAX_CALC_FIELDS)
-uint8_t calc_fields_update_buf[MAX_CALC_FIELDS];
-static void
-odp_execute_calc_fields_update(struct dp_packet *packet,
-                               const struct nlattr *a)
-{
-    enum ovs_key_attr dst_field_key = nl_attr_type(a);    a = nl_attr_next(a); 
-    enum ovs_cf_algorithm algorithm = nl_attr_get_u16(a); a = nl_attr_next(a);      
-    uint16_t n_fields = nl_attr_get_u16(a);               a = nl_attr_next(a); 
-    
-    const struct nlattr *a_;
-    size_t left, n_bytes;
-    uint8_t *buf = calc_fields_update_buf;
-    
-    NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
-        switch ((enum ovs_key_attr) nl_attr_type(a_)) {
-        OVS_ODP_EXECUTE_CALC_FIELDS_SRCS_CASES
-            
-        case OVS_KEY_ATTR_UNSPEC:
-        case __OVS_KEY_ATTR_MAX:
-        default:
-            OVS_NOT_REACHED();
-        }
-    }
-    
-    n_bytes = buf - calc_fields_update_buf;
-    
-    switch(algorithm) {
-    case OVS_CF_ALGO_CSUM16: {
-        ovs_be16 res16 = csum(calc_fields_update_buf, n_bytes);
-    
-        switch (dst_field_key) {
-        OVS_ODP_EXECUTE_CALC_FIELDS_UPDATE_DST_FIELD_16BIT_CASES
-        
-        case OVS_KEY_ATTR_UNSPEC:
-        case __OVS_KEY_ATTR_MAX:
-        default:
-            OVS_NOT_REACHED();
-        }
-        break;
-    }
-
-    default:
-        OVS_NOT_REACHED();
-    }
-}
-
-/* @Shahbaz: */
-// For now assuming a fixed length buffer for the csum (of size MAX_CALC_FIELDS)
-uint8_t calc_fields_verify_buf[MAX_CALC_FIELDS];
+// TODO: can have a more cleaner implementation?
+// For now assuming a fixed length buffer for csum (i.e., __OVS_CALC_FIELD_ATTR_MAX*8).
+// We assume maximum field size to be 64bits.
+uint8_t calc_fields_verify_buf[__OVS_CALC_FIELD_ATTR_MAX*8];
 static bool
 odp_execute_calc_fields_verify(struct dp_packet *packet,
                                const struct nlattr *a)
 {
-    enum ovs_key_attr dst_field_key = nl_attr_type(a);    a = nl_attr_next(a); 
-    enum ovs_cf_algorithm algorithm = nl_attr_get_u16(a); a = nl_attr_next(a);      
-    uint16_t n_fields = nl_attr_get_u16(a);               a = nl_attr_next(a); 
+    enum ovs_calc_field_attr dst_field_key = nl_attr_type(a); a = nl_attr_next(a); 
+    enum ovs_cf_algorithm algorithm = nl_attr_get_u16(a);     a = nl_attr_next(a);      
+    uint16_t n_fields = nl_attr_get_u16(a);                   a = nl_attr_next(a); 
     
     const struct nlattr *a_;
     size_t left, n_bytes;
     uint8_t *buf = calc_fields_verify_buf;
     
     NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
-        switch ((enum ovs_key_attr) nl_attr_type(a_)) {
+        switch ((enum ovs_calc_field_attr) nl_attr_type(a_)) {
         OVS_ODP_EXECUTE_CALC_FIELDS_SRCS_CASES
             
-        case OVS_KEY_ATTR_UNSPEC:
-        case __OVS_KEY_ATTR_MAX:
+        case OVS_CALC_FIELD_ATTR_UNSPEC:
+        case __OVS_CALC_FIELD_ATTR_MAX:
         default:
             OVS_NOT_REACHED();
         }
@@ -562,11 +513,61 @@ odp_execute_calc_fields_verify(struct dp_packet *packet,
         switch (dst_field_key) {
         OVS_ODP_EXECUTE_CALC_FIELDS_VERIFY_DST_FIELD_16BIT_CASES
         
-        case OVS_KEY_ATTR_UNSPEC:
-        case __OVS_KEY_ATTR_MAX:
+        case OVS_CALC_FIELD_ATTR_UNSPEC:
+        case __OVS_CALC_FIELD_ATTR_MAX:
         default:
             OVS_NOT_REACHED();
         }    
+    }
+
+    default:
+        OVS_NOT_REACHED();
+    }
+}
+
+/* @Shahbaz: */
+// TODO: can have a more cleaner implementation?
+// For now assuming a fixed length buffer for csum (i.e., __OVS_CALC_FIELD_ATTR_MAX*8).
+// We assume maximum field size to be 64bits.
+uint8_t calc_fields_update_buf[__OVS_CALC_FIELD_ATTR_MAX*8];
+static void
+odp_execute_calc_fields_update(struct dp_packet *packet,
+                               const struct nlattr *a)
+{
+    enum ovs_calc_field_attr dst_field_key = nl_attr_type(a); a = nl_attr_next(a); 
+    enum ovs_cf_algorithm algorithm = nl_attr_get_u16(a);     a = nl_attr_next(a);      
+    uint16_t n_fields = nl_attr_get_u16(a);                   a = nl_attr_next(a); 
+    
+    const struct nlattr *a_;
+    size_t left, n_bytes;
+    uint8_t *buf = calc_fields_update_buf;
+    
+    NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
+        switch ((enum ovs_calc_field_attr) nl_attr_type(a_)) {
+        OVS_ODP_EXECUTE_CALC_FIELDS_SRCS_CASES
+            
+        case OVS_CALC_FIELD_ATTR_UNSPEC:
+        case __OVS_CALC_FIELD_ATTR_MAX:
+        default:
+            OVS_NOT_REACHED();
+        }
+    }
+    
+    n_bytes = buf - calc_fields_update_buf;
+    
+    switch(algorithm) {
+    case OVS_CF_ALGO_CSUM16: {
+        ovs_be16 res16 = csum(calc_fields_update_buf, n_bytes);
+    
+        switch (dst_field_key) {
+        OVS_ODP_EXECUTE_CALC_FIELDS_UPDATE_DST_FIELD_16BIT_CASES
+        
+        case OVS_CALC_FIELD_ATTR_UNSPEC:
+        case __OVS_CALC_FIELD_ATTR_MAX:
+        default:
+            OVS_NOT_REACHED();
+        }
+        break;
     }
 
     default:
@@ -635,10 +636,10 @@ requires_datapath_assistance(const struct nlattr *a)
     OVS_REQUIRES_DATAPATH_ASSISTANCE_CASES /* @Shahbaz: */
                 
     /* @Shahbaz: */            
-    case OVS_ACTION_ATTR_CALC_FIELDS_UPDATE:
-    case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY:
     case OVS_ACTION_ATTR_SUB_FROM_FIELD:
     case OVS_ACTION_ATTR_ADD_TO_FIELD:
+    case OVS_ACTION_ATTR_CALC_FIELDS_UPDATE:
+    case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY:
     case OVS_ACTION_ATTR_DEPARSE:
         return false;
 
@@ -771,6 +772,22 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
         }
                     
         /* @Shahbaz: */
+        case OVS_ACTION_ATTR_SUB_FROM_FIELD: {
+            for (i = 0; i < cnt; i++) {    
+                odp_execute_sub_from_field(packets[i], nl_attr_get(a));
+            }
+            break;
+        }
+                    
+        /* @Shahbaz: */
+        case OVS_ACTION_ATTR_ADD_TO_FIELD: {
+            for (i = 0; i < cnt; i++) {    
+                odp_execute_add_to_field(packets[i], nl_attr_get(a));
+            }
+            break;
+        }
+                    
+        /* @Shahbaz: */
         case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY: {
             int j;
             for (i = j = 0; i < cnt; i++) {
@@ -792,22 +809,6 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
             break; 
         }
                 
-        /* @Shahbaz: */
-        case OVS_ACTION_ATTR_SUB_FROM_FIELD: {
-            for (i = 0; i < cnt; i++) {    
-                odp_execute_sub_from_field(packets[i], nl_attr_get(a));
-            }
-            break;
-        }
-                    
-        /* @Shahbaz: */
-        case OVS_ACTION_ATTR_ADD_TO_FIELD: {
-            for (i = 0; i < cnt; i++) {    
-                odp_execute_add_to_field(packets[i], nl_attr_get(a));
-            }
-            break;
-        }
-                    
         /* @Shahbaz: */
         case OVS_ACTION_ATTR_DEPARSE:
             for (i = 0; i < cnt; i++) {

@@ -126,10 +126,10 @@
     OFPACT(ADD_HEADER,      ofpact_add_header,  ofpact, "add_header") \
     OFPACT(REMOVE_HEADER,   ofpact_remove_header, ofpact, "remove_header") \
     OFPACT(MODIFY_FIELD,    ofpact_set_field, ofpact, "modify_field") \
+    OFPACT(CALC_FIELDS_VERIFY, ofpact_calc_fields, ofpact, "calc_fields_verify") \
+    OFPACT(CALC_FIELDS_UPDATE, ofpact_calc_fields, ofpact, "calc_fields_update") \
     OFPACT(ADD_TO_FIELD,    ofpact_add_to_field, ofpact, "add_to_field") \
     OFPACT(SUB_FROM_FIELD,  ofpact_sub_from_field, ofpact, "sub_from_field") \
-    OFPACT(CALC_FIELDS_VERIFY, ofpact_calc_fields_verify, ofpact, "calc_fields_verify") \
-    OFPACT(CALC_FIELDS_UPDATE, ofpact_calc_fields_update, ofpact, "calc_fields_update") \
     OVS_OFPACTS
 
 /* enum ofpact_type, with a member OFPACT_<ENUM> for each action. */
@@ -433,6 +433,25 @@ struct ofpact_remove_header {
     uint8_t name[];
 };
 
+/* @Shahbaz: calculated fields algorithm to apply. */
+enum cf_algorithm {
+    CF_ALGO_CSUM16 = 0,
+};
+
+/* @Shahbaz: */
+#define __MAX_CALC_FIELDS 64
+
+/* @Shahbaz: */
+/* OFPACT_CALC_FIELDS.
+ */
+struct ofpact_calc_fields {
+    struct ofpact ofpact;
+    enum mf_field_id dst_field_id;
+    enum cf_algorithm algorithm;
+    unsigned int n_fields;
+    enum mf_field_id src_field_ids[];
+};
+
 /* @Shahbaz: */
 /* OFPACT_ADD_TO_FIELD.
  */
@@ -451,36 +470,6 @@ struct ofpact_sub_from_field {
     const struct mf_field *field;
     union mf_value value;
     union mf_value mask;
-};
-
-/* @Shahbaz: calculated fields algorithm to apply. */
-enum cf_algorithm {
-    CF_ALGO_CSUM16 = 0,
-};
-
-/* @Shahbaz: */
-#define MAX_CALC_FIELDS 64
-
-/* @Shahbaz: */
-/* OFPACT_CALC_FIELDS_VERIFY.
- */
-struct ofpact_calc_fields_verify {
-    struct ofpact ofpact;
-    enum mf_field_id dst_field_id;
-    enum cf_algorithm algorithm;
-    unsigned int n_fields;
-    enum mf_field_id src_field_ids[];
-};
-
-/* @Shahbaz: */
-/* OFPACT_CALC_FIELDS_UPDATE.
- */
-struct ofpact_calc_fields_update {
-    struct ofpact ofpact;
-    enum mf_field_id dst_field_id;
-    enum cf_algorithm algorithm;
-    unsigned int n_fields;
-    enum mf_field_id src_field_ids[];
 };
 
 /* OFPACT_PUSH_VLAN/MPLS/PBB

@@ -722,8 +722,6 @@ enum ovs_action_attr {
         OVS_ACTION_ATTR_CALC_FIELDS_VERIFY,
         OVS_ACTION_ATTR_SUB_FROM_FIELD,
         OVS_ACTION_ATTR_ADD_TO_FIELD,
-        OVS_ACTION_ATTR_ADD_HEADER,
-        OVS_ACTION_ATTR_REMOVE_HEADER,        
         OVS_ACTION_ATTR_DEPARSE,
 #endif
 	__OVS_ACTION_ATTR_MAX,	      /* Nothing past this will be accepted
@@ -742,5 +740,16 @@ enum ovs_action_attr {
 enum ovs_cf_algorithm {
     OVS_CF_ALGO_CSUM16 = 0,
 };
+
+/* @Shahbaz: */
+enum ovs_calc_field_attr {
+    OVS_CALC_FIELD_ATTR_UNSPEC,
+    
+    /* @Shahbaz: */
+    OVS_CALC_FIELD_ATTRS
+            
+    __OVS_CALC_FIELD_ATTR_MAX,        /* Nothing past this will be accepted
+				       * from userspace. */
+};      
 
 #endif /* _LINUX_OPENVSWITCH_H */
