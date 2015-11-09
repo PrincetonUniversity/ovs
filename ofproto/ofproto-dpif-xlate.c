@@ -4109,9 +4109,9 @@ recirc_unroll_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         case OFPACT_CALC_FIELDS_VERIFY:
         case OFPACT_SUB_FROM_FIELD:
         case OFPACT_ADD_TO_FIELD:
-        case OFPACT_ADD_HEADER:
-        case OFPACT_REMOVE_HEADER:
         case OFPACT_MODIFY_FIELD:
+        case OFPACT_REMOVE_HEADER:
+        case OFPACT_ADD_HEADER:
         case OFPACT_DEPARSE:
             break;
 
@@ -4326,36 +4326,6 @@ compose_add_to_field(struct xlate_ctx *ctx,
             OVS_NOT_REACHED();
         }
     }
-}
-
-/* @Shahbaz: */
-static void 
-compose_add_header(struct xlate_ctx *ctx, const struct ofpact_add_header *add_header) 
-{ 
-    /* @Shahbaz: 
-     * TODO: see if this is actually needed.
-     */
-    bool use_masked = ctx->xbridge->support.masked_set_action; 
-    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
-                                          ctx->odp_actions, ctx->wc, 
-                                          use_masked); 
-    
-    OVS_COMPOSE_ADD_HEADER_CHECKS
-}
-
-/* @Shahbaz: */
-static void 
-compose_remove_header(struct xlate_ctx *ctx, const struct ofpact_remove_header *remove_header) 
-{ 
-    /* @Shahbaz: 
-     * TODO: see if this is actually needed.
-     */
-    bool use_masked = ctx->xbridge->support.masked_set_action; 
-    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
-                                          ctx->odp_actions, ctx->wc, 
-                                          use_masked); 
-    
-    OVS_COMPOSE_REMOVE_HEADER_CHECKS
 }
 
 /* @Shahbaz: */
@@ -4773,22 +4743,6 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         }
                     
         /* @Shahbaz: */
-        case OFPACT_ADD_HEADER: {
-            const struct ofpact_add_header *add_header;
-            add_header = ofpact_get_ADD_HEADER(a);
-            compose_add_header(ctx, add_header); 
-            break;
-        }
-        
-        /* @Shahbaz: */
-        case OFPACT_REMOVE_HEADER: {
-            const struct ofpact_remove_header *remove_header;
-            remove_header = ofpact_get_REMOVE_HEADER(a);
-            compose_remove_header(ctx, remove_header); 
-            break;
-        }
-        
-        /* @Shahbaz: */
         case OFPACT_MODIFY_FIELD: {
             const struct ofpact_modify_field *modify_field;
             modify_field = ofpact_get_MODIFY_FIELD(a);
@@ -4799,6 +4753,16 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
                 mf_set_flow_value_masked(mf, &modify_field->value,
                                          &modify_field->mask, flow);
             }
+            break;
+        }
+        
+        /* @Shahbaz: */
+        case OFPACT_REMOVE_HEADER: {
+            break;
+        }
+        
+        /* @Shahbaz: */
+        case OFPACT_ADD_HEADER: {
             break;
         }
         

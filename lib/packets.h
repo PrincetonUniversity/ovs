@@ -976,8 +976,6 @@ OVS_HDR_DECLS /* @Shahbaz: */
 OVS_FUNC_DECLS /* @Shahbaz: */
 
 /* @Shahbaz: */
-void add_header(struct dp_packet *, const struct nlattr *a);
-void remove_header(struct dp_packet *, const struct nlattr *a);
 void deparse(struct dp_packet *);
 
 #endif /* packets.h */

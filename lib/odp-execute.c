@@ -639,8 +639,6 @@ requires_datapath_assistance(const struct nlattr *a)
     case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY:
     case OVS_ACTION_ATTR_SUB_FROM_FIELD:
     case OVS_ACTION_ATTR_ADD_TO_FIELD:
-    case OVS_ACTION_ATTR_ADD_HEADER:
-    case OVS_ACTION_ATTR_REMOVE_HEADER:
     case OVS_ACTION_ATTR_DEPARSE:
         return false;
 
@@ -794,7 +792,6 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
             break; 
         }
                 
-                    
         /* @Shahbaz: */
         case OVS_ACTION_ATTR_SUB_FROM_FIELD: {
             for (i = 0; i < cnt; i++) {    
@@ -811,22 +808,6 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
             break;
         }
                     
-        /* @Shahbaz: */
-        case OVS_ACTION_ATTR_ADD_HEADER: {
-            for (i = 0; i < cnt; i++) {    
-                add_header(packets[i], nl_attr_get(a));
-            }
-            break;
-        }
-        
-        /* @Shahbaz: */
-        case OVS_ACTION_ATTR_REMOVE_HEADER: {
-            for (i = 0; i < cnt; i++) {    
-                remove_header(packets[i], nl_attr_get(a));
-            }
-            break;
-        }
-        
         /* @Shahbaz: */
         case OVS_ACTION_ATTR_DEPARSE:
             for (i = 0; i < cnt; i++) {
