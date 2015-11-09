@@ -4744,15 +4744,6 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
                     
         /* @Shahbaz: */
         case OFPACT_MODIFY_FIELD: {
-            const struct ofpact_modify_field *modify_field;
-            modify_field = ofpact_get_MODIFY_FIELD(a);
-            mf = modify_field->field;
-
-            mf_mask_field_and_prereqs(mf, wc);
-            if (mf_are_prereqs_ok(mf, flow)) {
-                mf_set_flow_value_masked(mf, &modify_field->value,
-                                         &modify_field->mask, flow);
-            }
             break;
         }
         

@@ -308,7 +308,7 @@ enum ofp_raw_action_type {
     /* OF1.5+(33): void. */
     OFPAT_RAW_REMOVE_HEADER,
     
-    /* OF1.5+(31): struct ofp_action_modify_field, ... */
+    /* OF1.5+(31): void. */
     OFPAT_RAW_MODIFY_FIELD,
     
     /* OF1.5+(34): struct ofp_action_add_to_field, ... */
@@ -375,6 +375,13 @@ static void *ofpact_put_raw(struct ofpbuf *, enum ofp_version,
 static char *OVS_WARN_UNUSED_RESULT ofpacts_parse(
     char *str, struct ofpbuf *ofpacts, enum ofputil_protocol *usable_protocols,
     bool allow_instructions, enum ofpact_type outer_action);
+
+static void
+set_field_to_set_field(const struct ofpact_set_field *sf,
+                       enum ofp_version ofp_version, struct ofpbuf *out);
+static char * OVS_WARN_UNUSED_RESULT
+set_field_parse__(char *arg, struct ofpbuf *ofpacts,
+                  enum ofputil_protocol *usable_protocols);
 
 /* Pull off existing actions or instructions. Used by nesting actions to keep
  * ofpacts_parse() oblivious of actions nesting.
@@ -904,120 +911,20 @@ format_REMOVE_HEADER(const struct ofpact_remove_header *rh OVS_UNUSED,
 }
 
 /* @Shahbaz: */
-struct ofp_action_modify_field {
-    ovs_be16 type;
-    ovs_be16 len;
-
-    uint8_t pad[4];
-};
-OFP_ASSERT(sizeof(struct ofp_action_modify_field) == 8);
 
 static enum ofperr
-decode_ofpat_modify_field(const struct ofp_action_modify_field *a,
-                          bool may_mask, struct ofpbuf *ofpacts)
+decode_OFPAT_RAW_MODIFY_FIELD(struct ofpbuf *ofpacts OVS_UNUSED)
 {
-    struct ofpact_modify_field *mf;
-    enum ofperr error;
-    struct ofpbuf b;
-
-    mf = ofpact_put_MODIFY_FIELD(ofpacts);
-
-    ofpbuf_use_const(&b, a, ntohs(a->len));
-    ofpbuf_pull(&b, OBJECT_OFFSETOF(a, pad));
-    error = nx_pull_entry(&b, &mf->field, &mf->value,
-                          may_mask ? &mf->mask : NULL);
-    if (error) {
-        return (error == OFPERR_OFPBMC_BAD_MASK
-                ? OFPERR_OFPBAC_BAD_SET_MASK
-                : error);
-    }
-    if (!may_mask) {
-        memset(&mf->mask, 0xff, mf->field->n_bytes);
-    }
-
-    if (!is_all_zeros(b.data, b.size)) {
-        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
-    }
-
-    /* OpenFlow says specifically that one may not set OXM_OF_IN_PORT via
-     * Set-Field. */
-    if (mf->field->id == MFF_IN_PORT_OXM) {
-        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
-    }
-
-    /* oxm_length is now validated to be compatible with mf_value. */
-    if (!mf->field->writable) {
-        VLOG_WARN_RL(&rl, "destination field %s is not writable",
-                     mf->field->name);
-        return OFPERR_OFPBAC_BAD_SET_ARGUMENT;
-    }
-
     return 0;
 }
 
-static enum ofperr
-decode_OFPAT_RAW_MODIFY_FIELD(const struct ofp_action_modify_field *a,
-                              struct ofpbuf *ofpacts)
-{
-    return decode_ofpat_modify_field(a, true, ofpacts);
-}
-
 static void
-encode_MODIFY_FIELD(const struct ofpact_modify_field *mf,
+encode_MODIFY_FIELD(const struct ofpact_set_field *sf,
                     enum ofp_version ofp_version, struct ofpbuf *out)
 {
     if (ofp_version >= OFP15_VERSION) {
-        struct ofp_action_modify_field *a OVS_UNUSED;
-        size_t start_ofs = out->size;
-
-        a = put_OFPAT_MODIFY_FIELD(out);
-        out->size = out->size - sizeof a->pad;
-        nx_put_entry(out, mf->field->id, ofp_version, &mf->value, &mf->mask);
-        pad_ofpat(out, start_ofs);
+        set_field_to_set_field(sf, ofp_version, out);
     }
-}
-
-static char * OVS_WARN_UNUSED_RESULT
-modify_field_parse__(char *arg, struct ofpbuf *ofpacts,
-                     enum ofputil_protocol *usable_protocols)
-{
-    struct ofpact_modify_field *mf_ = ofpact_put_MODIFY_FIELD(ofpacts);
-    char *value;
-    char *delim;
-    char *key;
-    const struct mf_field *mf;
-    char *error;
-
-    value = arg;
-    delim = strstr(arg, "->");
-    if (!delim) {
-        return xasprintf("%s: missing `->'", arg);
-    }
-    if (strlen(delim) <= strlen("->")) {
-        return xasprintf("%s: missing field name following `->'", arg);
-    }
-
-    key = delim + strlen("->");
-    mf = mf_from_name(key);
-    if (!mf) {
-        return xasprintf("%s is not a valid OXM field name", key);
-    }
-    if (!mf->writable) {
-        return xasprintf("%s is read-only", key);
-    }
-    mf_->field = mf;
-    delim[0] = '\0';
-    error = mf_parse(mf, value, &mf_->value, &mf_->mask);
-    if (error) {
-        return error;
-    }
-
-    if (!mf_is_value_valid(mf, &mf_->value)) {
-        return xasprintf("%s is not a valid value for field %s", value, key);
-    }
-
-    *usable_protocols &= mf->usable_protocols_exact;
-    return NULL;
 }
 
 static char * OVS_WARN_UNUSED_RESULT
@@ -1025,17 +932,16 @@ parse_MODIFY_FIELD(char *arg, struct ofpbuf *ofpacts,
                    enum ofputil_protocol *usable_protocols)
 {
     char *copy = xstrdup(arg);
-    char *error = modify_field_parse__(copy, ofpacts, usable_protocols);
+    char *error = set_field_parse__(copy, ofpacts, usable_protocols);
     free(copy);
     return error;
 }
 
 static void
-format_MODIFY_FIELD(const struct ofpact_modify_field *mf, struct ds *s)
+format_MODIFY_FIELD(const struct ofpact_modify_field *sf OVS_UNUSED,  
+                        struct ds *s OVS_UNUSED)
 {   
-    ds_put_cstr(s, "modify_field:");
-    mf_format(mf->field, &mf->value, &mf->mask, s);
-    ds_put_format(s, "->%s", mf->field->name);
+    return;
 }
 
 /* @Shahbaz:

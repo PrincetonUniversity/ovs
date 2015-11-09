@@ -125,7 +125,7 @@
     OFPACT(DEPARSE,         ofpact_null,        ofpact, "deparse")      \
     OFPACT(ADD_HEADER,      ofpact_add_header,  ofpact, "add_header") \
     OFPACT(REMOVE_HEADER,   ofpact_remove_header, ofpact, "remove_header") \
-    OFPACT(MODIFY_FIELD,    ofpact_modify_field, ofpact, "modify_field") \
+    OFPACT(MODIFY_FIELD,    ofpact_set_field, ofpact, "modify_field") \
     OFPACT(ADD_TO_FIELD,    ofpact_add_to_field, ofpact, "add_to_field") \
     OFPACT(SUB_FROM_FIELD,  ofpact_sub_from_field, ofpact, "sub_from_field") \
     OFPACT(CALC_FIELDS_VERIFY, ofpact_calc_fields_verify, ofpact, "calc_fields_verify") \
@@ -431,16 +431,6 @@ struct ofpact_remove_header {
     struct ofpact ofpact;
     unsigned int n_bytes;
     uint8_t name[];
-};
-
-/* @Shahbaz: */
-/* OFPACT_MODIFY_FIELD.
- */
-struct ofpact_modify_field {
-    struct ofpact ofpact;
-    const struct mf_field *field;
-    union mf_value value;
-    union mf_value mask;
 };
 
 /* @Shahbaz: */
