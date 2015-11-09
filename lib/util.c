@@ -1146,6 +1146,11 @@ uint64_t be24_to_u64(const uint8_t *value) {
 }
 
 /* @Shahbaz: */
+ovs_be64 u24_to_be64(const uint8_t *value) {
+    return (ovs_be64)be24_to_u64(value);
+}
+
+/* @Shahbaz: */
 uint64_t be40_to_u64(const uint8_t *value) {
     uint64_t x = 0;
 
@@ -1156,6 +1161,11 @@ uint64_t be40_to_u64(const uint8_t *value) {
     x |= value[4];
 
     return x;
+}
+
+/* @Shahbaz: */
+ovs_be64 u40_to_be64(const uint8_t *value) {
+    return (ovs_be64)be40_to_u64(value);
 }
 
 /* @Shahbaz: */
@@ -1170,6 +1180,11 @@ uint64_t be48_to_u64(const uint8_t *value) {
     x |= value[5];
 
     return x;
+}
+
+/* @Shahbaz: */
+ovs_be64 u48_to_be64(const uint8_t *value) {
+    return (ovs_be64)be48_to_u64(value);
 }
 
 /* @Shahbaz: */
@@ -1188,7 +1203,24 @@ uint64_t be56_to_u64(const uint8_t *value) {
 }
 
 /* @Shahbaz: */
-void ovs_apply_mask(const uint8_t *key, const uint8_t * header,
+ovs_be64 u56_to_be64(const uint8_t *value) {
+    return (ovs_be64)be56_to_u64(value);
+}
+
+/* @Shahbaz: */
+void 
+apply_mask_0(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
+{
+    size_t i;
+
+    for (i = 0; i < n; i++) {
+        dst[i] = (src[i] & mask[i]) | (dst[i] & ~mask[i]);
+    }
+}
+
+
+/* @Shahbaz: */
+void apply_mask_1(const uint8_t *key, const uint8_t * header,
                     const uint8_t *mask, uint8_t *res, size_t n_bytes) {
     int i;
     for (i = 0; i < n_bytes; i++) {

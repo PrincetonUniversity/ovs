@@ -760,6 +760,8 @@ miniflow_extract(struct dp_packet *packet, struct miniflow *dst)
     //         }
     //     }
     // }
+    OVS_MINIFLOW_EXTRACT_METADATA_DEFS /* @Shahbaz: TODO: see if these can be 
+                                        * moved outside the extract function.*/
     OVS_MINIFLOW_EXTRACT /* @Shahbaz: */
  out:
     dst->map = mf.map;

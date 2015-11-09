@@ -474,17 +474,6 @@ odp_execute_sample(void *dp, struct dp_packet *packet, bool steal,
                         nl_attr_get_size(subactions), dp_execute_action);
 }
 
-/* @Shahbaz: */
-static void
-apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
-{
-    size_t i;
-
-    for (i = 0; i < n; i++) {
-        dst[i] = (src[i] & mask[i]) | (dst[i] & ~mask[i]);
-    }
-}
-
 OVS_ODP_EXECUTE_FUNCS /* Shahbaz: */
 
 /* @Shahbaz: */

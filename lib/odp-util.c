@@ -651,6 +651,7 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         ds_put_cstr(ds, "calc_fields_update(");
                                                               
         switch (dst_field_key) {
+        /* @Shahbaz: */
         OVS_FORMAT_ODP_ACTION_CALC_FIELDS_CASES
         
         case OVS_KEY_ATTR_UNSPEC:
@@ -677,6 +678,7 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         size_t left;
         NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
             switch ((enum ovs_key_attr) nl_attr_type(a_)) {
+            /* @Shahbaz: */
             OVS_FORMAT_ODP_ACTION_CALC_FIELDS_CASES
             
             case OVS_KEY_ATTR_UNSPEC:
@@ -703,6 +705,7 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         ds_put_cstr(ds, "calc_fields_verify(");
                                                               
         switch (dst_field_key) {
+        /* @Shahbaz: */    
         OVS_FORMAT_ODP_ACTION_CALC_FIELDS_CASES
         
         case OVS_KEY_ATTR_UNSPEC:
@@ -729,6 +732,7 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         size_t left;
         NL_NESTED_FOR_EACH_UNSAFE(a_, left, a){
             switch ((enum ovs_key_attr) nl_attr_type(a_)) {
+            /* @Shahbaz: */    
             OVS_FORMAT_ODP_ACTION_CALC_FIELDS_CASES
             
             case OVS_KEY_ATTR_UNSPEC:
@@ -1727,7 +1731,7 @@ format_eth(struct ds *ds, const char *name, const struct eth_addr key,
 
 /* @Shahbaz: */
 static void
-format_custom(struct ds *ds, const char *name, const uint8_t *key,
+format_bex(struct ds *ds, const char *name, const uint8_t *key,
             const uint8_t (*mask)[], size_t n_bytes, bool verbose)
 {
     bool mask_empty = mask && is_all_zeros(*mask, n_bytes);
@@ -1754,7 +1758,7 @@ format_custom(struct ds *ds, const char *name, const uint8_t *key,
 
 /* @Shahbaz: */
 static void
-format_be32(struct ds *ds, const char *name, ovs_be32 key,
+format_be32x(struct ds *ds, const char *name, ovs_be32 key,
             const ovs_be32 *mask, bool verbose)
 {
     bool mask_empty = mask && !*mask;
@@ -1770,8 +1774,9 @@ format_be32(struct ds *ds, const char *name, ovs_be32 key,
     }
 }
 
+/* @Shahbaz: */
 static void
-format_be64(struct ds *ds, const char *name, ovs_be64 key,
+format_be64x(struct ds *ds, const char *name, ovs_be64 key,
             const ovs_be64 *mask, bool verbose)
 {
     bool mask_empty = mask && !*mask;
@@ -2152,7 +2157,7 @@ format_odp_tun_attr(const struct nlattr *attr, const struct nlattr *mask_attr,
 
         switch (type) {
         case OVS_TUNNEL_KEY_ATTR_ID:
-            format_be64(ds, "tun_id", nl_attr_get_be64(a),
+            format_be64x(ds, "tun_id", nl_attr_get_be64(a),
                         ma ? nl_attr_get(ma) : NULL, verbose);
 	    flags |= FLOW_TNL_F_KEY;
             if (ma) {

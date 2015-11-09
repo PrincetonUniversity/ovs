@@ -835,7 +835,7 @@ format_ipv6_netmask(struct ds *s, const char *name,
 
 /* @Shahbaz: */
 static void
-format_masked(struct ds *s, const char *name,
+format_bex_masked(struct ds *s, const char *name,
               const uint8_t *value, const uint8_t *mask, size_t n_bytes)
 {
     if (!is_all_zeros(mask, n_bytes)) {
