@@ -70,3 +70,5 @@ OvsDpInterface.h
 testsuite.tmp.orig
 src/
 nbproject/
+.ptp-sync-folder
+.ptp-sync

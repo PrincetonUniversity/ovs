@@ -575,40 +575,6 @@ odp_execute_calc_fields_update(struct dp_packet *packet,
     }
 }
 
-/* @Shahbaz: */
-static void
-odp_execute_sub_from_field(struct dp_packet *packet,
-                           const struct nlattr *a)
-{
-    enum ovs_key_attr key = nl_attr_type(a);
-    
-    switch (key) {
-    OVS_ODP_EXECUTE_SUB_FROM_FIELD_CASES /* @Shahbaz: */
-
-    case OVS_KEY_ATTR_UNSPEC:
-    case __OVS_KEY_ATTR_MAX:
-    default:
-        OVS_NOT_REACHED();
-    }
-}
-
-/* @Shahbaz: */
-static void
-odp_execute_add_to_field(struct dp_packet *packet,
-                         const struct nlattr *a)
-{
-    enum ovs_key_attr key = nl_attr_type(a);
-    
-    switch (key) {
-    OVS_ODP_EXECUTE_ADD_TO_FIELD_CASES /* @Shahbaz: */
-
-    case OVS_KEY_ATTR_UNSPEC:
-    case __OVS_KEY_ATTR_MAX:
-    default:
-        OVS_NOT_REACHED();
-    }
-}
-
 static bool
 requires_datapath_assistance(const struct nlattr *a)
 {
@@ -767,22 +733,6 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
         case OVS_ACTION_ATTR_CALC_FIELDS_UPDATE: {
             for (i = 0; i < cnt; i++) {    
                 odp_execute_calc_fields_update(packets[i], nl_attr_get(a));
-            }
-            break;
-        }
-                    
-        /* @Shahbaz: */
-        case OVS_ACTION_ATTR_SUB_FROM_FIELD: {
-            for (i = 0; i < cnt; i++) {    
-                odp_execute_sub_from_field(packets[i], nl_attr_get(a));
-            }
-            break;
-        }
-                    
-        /* @Shahbaz: */
-        case OVS_ACTION_ATTR_ADD_TO_FIELD: {
-            for (i = 0; i < cnt; i++) {    
-                odp_execute_add_to_field(packets[i], nl_attr_get(a));
             }
             break;
         }

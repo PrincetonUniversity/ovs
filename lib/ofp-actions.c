@@ -1332,11 +1332,11 @@ format_CALC_FIELDS_UPDATE(const struct ofpact_calc_fields *a, struct ds *s)
 struct ofp_action_add_to_field {
     ovs_be16 type;
     ovs_be16 len;
-
     uint8_t pad[4];
 };
 OFP_ASSERT(sizeof(struct ofp_action_add_to_field) == 8);
 
+/* Decode ofp_action_add_to_field into ofpact_add_to_field */
 static enum ofperr
 decode_ofpat_add_to_field(const struct ofp_action_add_to_field *a,
                           bool may_mask, struct ofpbuf *ofpacts)
@@ -1345,9 +1345,12 @@ decode_ofpat_add_to_field(const struct ofp_action_add_to_field *a,
     enum ofperr error;
     struct ofpbuf b;
 
+    // Creates a new ofpact_add_to_field and attach to ofpacts
     atf = ofpact_put_ADD_TO_FIELD(ofpacts);
 
+    // Sets up b to look at ofp_action_add_to_field element a
     ofpbuf_use_const(&b, a, ntohs(a->len));
+    // Remove the padding
     ofpbuf_pull(&b, OBJECT_OFFSETOF(a, pad));
     error = nx_pull_entry(&b, &atf->field, &atf->value,
                           may_mask ? &atf->mask : NULL);
@@ -1356,6 +1359,7 @@ decode_ofpat_add_to_field(const struct ofp_action_add_to_field *a,
                 ? OFPERR_OFPBAC_BAD_SET_MASK
                 : error);
     }
+    // If not maskable,set the mask to 1 for n_bytes (size of field)
     if (!may_mask) {
         memset(&atf->mask, 0xff, atf->field->n_bytes);
     }
@@ -1387,6 +1391,7 @@ decode_OFPAT_RAW_ADD_TO_FIELD(const struct ofp_action_add_to_field *a,
     return decode_ofpat_add_to_field(a, true, ofpacts);
 }
 
+/* Encoding ofpact_add_to_field into ofp_action_add_to_field */
 static void
 encode_ADD_TO_FIELD(const struct ofpact_add_to_field *atf,
                     enum ofp_version ofp_version, struct ofpbuf *out)
@@ -1402,6 +1407,7 @@ encode_ADD_TO_FIELD(const struct ofpact_add_to_field *atf,
     }
 }
 
+/* TODO: Show example parse structure */
 static char * OVS_WARN_UNUSED_RESULT
 add_to_field_parse__(char *arg, struct ofpbuf *ofpacts,
                      enum ofputil_protocol *usable_protocols)
@@ -1414,15 +1420,19 @@ add_to_field_parse__(char *arg, struct ofpbuf *ofpacts,
     char *error;
 
     value = arg;
+    // Returns everything after the first ->
     delim = strstr(arg, "->");
     if (!delim) {
         return xasprintf("%s: missing `->'", arg);
     }
+    // Nothing showed up after ->
     if (strlen(delim) <= strlen("->")) {
         return xasprintf("%s: missing field name following `->'", arg);
     }
 
+    // Look at the key after ->
     key = delim + strlen("->");
+    // Create the mf_field from the key
     mf = mf_from_name(key);
     if (!mf) {
         return xasprintf("%s is not a valid OXM field name", key);
@@ -1449,7 +1459,9 @@ static char * OVS_WARN_UNUSED_RESULT
 parse_ADD_TO_FIELD(char *arg, struct ofpbuf *ofpacts,
                    enum ofputil_protocol *usable_protocols)
 {
+	// Copy argument string without memory checking
     char *copy = xstrdup(arg);
+    // Parse the fields from copy string
     char *error = add_to_field_parse__(copy, ofpacts, usable_protocols);
     free(copy);
     return error;

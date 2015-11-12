@@ -366,7 +366,9 @@ nx_pull_entry__(struct ofpbuf *b, bool allow_cookie, uint64_t *header,
         return header_error;
     }
 
+    // Get the OXM/NXM Entry length
     payload_len = nxm_payload_len(*header);
+    // Pull the OXM/NXM Entry
     payload = ofpbuf_try_pull(b, payload_len);
     if (!payload) {
         VLOG_DBG_RL(&rl, "OXM header "NXM_HEADER_FMT" calls for %u-byte "
@@ -381,12 +383,15 @@ nx_pull_entry__(struct ofpbuf *b, bool allow_cookie, uint64_t *header,
         return OFPERR_OFPBMC_BAD_WILDCARDS;
     }
 
+    // Copies the value of payload into value of width bytes
     copy_entry_value(field, value, payload, width);
 
+    // Mask is the next width bits of the packet after the header
     if (mask) {
         if (nxm_hasmask(*header)) {
             copy_entry_value(field, mask, payload + width, width);
         } else {
+            // Set all mask to 1 if the header doesn't say it has a mask
             memset(mask, 0xff, sizeof *mask);
         }
     } else if (nxm_hasmask(*header)) {

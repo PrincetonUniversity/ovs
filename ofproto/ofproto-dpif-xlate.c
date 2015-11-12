@@ -4241,37 +4241,31 @@ compose_calc_fields_update(struct xlate_ctx *ctx,
     nl_msg_end_nested(ctx->odp_actions, offset);
 }
 
-/* @Shahbaz: */
-static void 
-compose_sub_from_field_(struct xlate_ctx *ctx, enum ovs_key_attr key,
-                        const void *value, size_t size)
+/* Consider each of 'src', 'mask', and 'dst' as if they were arrays of 8*n
+ * bits.  Then, for each 0 <= i < 8 * n such that mask[i] == 1, sets dst[i] =
+ * src[i].  */
+static void
+apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
 {
-    size_t offset = nl_msg_start_nested(ctx->odp_actions,
-                                        OVS_ACTION_ATTR_SUB_FROM_FIELD);
-    char *data = nl_msg_put_unspec_uninit(ctx->odp_actions, key, size);
-    memcpy(data, value, size);
-    nl_msg_end_nested(ctx->odp_actions, offset);
+    size_t i;
+    for (i = 0; i < n; i++) {
+        dst[i] = (src[i] & mask[i]) | (dst[i] & ~mask[i]);
+    }
 }
+
 
 static void 
 compose_sub_from_field(struct xlate_ctx *ctx, 
                        const struct ofpact_sub_from_field *sub_from_field) 
 { 
-    struct flow_wildcards *wc = ctx->wc;
+    // Set the field and the prerequisites
+	struct flow_wildcards *wc = ctx->wc;
     struct flow *flow = &ctx->xin->flow;
-    bool use_masked = ctx->xbridge->support.masked_set_action; 
-    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
-                                          ctx->odp_actions, ctx->wc, 
-                                          use_masked); 
-    
-    
+    // Retrieve the values and the field
     const struct mf_field *mf = sub_from_field->field;
     const union mf_value *value = &sub_from_field->value;
-
-/* @Shahbaz: 
- * TODO: 1) handle subtraction for masked fields.
- */    
-//    const union mf_value *mask = &sub_from_field->mask;
+    // @Sean: Handling cases for masked field
+    const union mf_value *mask = &sub_from_field->mask;
 
     mf_mask_field_and_prereqs(mf, wc);
     if (mf_are_prereqs_ok(mf, flow)) {        
@@ -4285,36 +4279,18 @@ compose_sub_from_field(struct xlate_ctx *ctx,
     }
 }
 
-/* @Shahbaz: */
-static void 
-compose_add_to_field_(struct xlate_ctx *ctx, enum ovs_key_attr key,
-                     const void *value, size_t size)
-{
-    size_t offset = nl_msg_start_nested(ctx->odp_actions,
-                                        OVS_ACTION_ATTR_ADD_TO_FIELD);
-    char *data = nl_msg_put_unspec_uninit(ctx->odp_actions, key, size);
-    memcpy(data, value, size);
-    nl_msg_end_nested(ctx->odp_actions, offset);
-}
-
 static void 
 compose_add_to_field(struct xlate_ctx *ctx, 
                    const struct ofpact_add_to_field *add_to_field) 
-{ 
-    struct flow_wildcards *wc = ctx->wc;
+{
+    // Set the field and the prerequisites
+	struct flow_wildcards *wc = ctx->wc;
     struct flow *flow = &ctx->xin->flow;
-    bool use_masked = ctx->xbridge->support.masked_set_action; 
-    ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
-                                          ctx->odp_actions, ctx->wc, 
-                                          use_masked); 
-    
+    // Retrieve the values and the field
     const struct mf_field *mf = add_to_field->field;
     const union mf_value *value = &add_to_field->value;
-
-/* @Shahbaz: 
- * TODO: 1) handle addition for masked fields.
- */    
-//    const union mf_value *mask = &add_to_field->mask;
+    // @Sean: Handling cases for masked field
+    const union mf_value *mask = &add_to_field->mask;
 
     mf_mask_field_and_prereqs(mf, wc);
     if (mf_are_prereqs_ok(mf, flow)) {        
