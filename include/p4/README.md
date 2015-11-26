@@ -1,6 +1,6 @@
 ## P4 -> OVS
 
-Here are the instructions on how to test this with P4:
+Here are some instructions on how to test this with P4:
 
 ### Installing P4 behavioral model and OVS:
 
@@ -20,7 +20,7 @@ $ git checkout ovs
 
 https://github.com/PrincetonUniversity/p4c-behavioral/blob/ovs/README.md
 
-* Now, clone the local fork for OVS that I had from here ...
+* Now clone the local fork for OVS from here ...
 
 ``` bash
 $ git clone https://github.com/PrincetonUniversity/ovs.git
