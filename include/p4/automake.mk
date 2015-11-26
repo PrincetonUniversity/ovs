@@ -22,8 +22,8 @@ p4ovsinclude_HEADERS = \
 	include/p4/src/ovs_action_openvswitch.h \
 	include/p4/src/ovs_action_packets.h
 	
-EXTRA_DIST += include/p4/README.md
-	include/p4/examples/l2_switch/l2_switch.p4
-	include/p4/examples/l2_switch/l2_switch.sh
-	include/p4/examples/simple_router/simple_router.p4
+EXTRA_DIST += include/p4/README.md \
+	include/p4/examples/l2_switch/l2_switch.p4 \
+	include/p4/examples/l2_switch/l2_switch.sh \
+	include/p4/examples/simple_router/simple_router.p4 \
 	include/p4/examples/simple_router/simple_router.sh
