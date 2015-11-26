@@ -18,9 +18,7 @@ $ git checkout ovs
 
 * Install it using the instructions here ...
 
-``` bash
-$ https://github.com/PrincetonUniversity/p4c-behavioral/blob/ovs/README.md
-```
+https://github.com/PrincetonUniversity/p4c-behavioral/blob/ovs/README.md
 
 * Now, clone the local fork for OVS that I had from here ...
 
