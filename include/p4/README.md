@@ -54,7 +54,7 @@ $ make clean
 $ make
 ```
 
-* Install static flow rules:
+* Installing static flow rules:
 
 $ cd <ovs-root-dir>/include/p4/examples/l2_switch
 $ ./l2_switch.sh
