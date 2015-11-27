@@ -398,4 +398,4 @@ include datapath-windows/automake.mk
 include datapath-windows/include/automake.mk
 include windows/automake.mk
 include ovn/automake.mk
-inlcude setup-scripts/automake.mk
+include setup-scripts/automake.mk
