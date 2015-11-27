@@ -4,6 +4,10 @@
 # TODO: install target
 (
 # Compile dpdk
+if [ ! -d "./dpdk" ]; then
+echo "./dpdk doesn't exist"
+exit 1
+fi
 cd ./dpdk
 make -j 8 install T=x86_64-native-linuxapp-gcc
 
