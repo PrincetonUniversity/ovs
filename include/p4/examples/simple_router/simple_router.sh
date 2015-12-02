@@ -13,35 +13,48 @@ $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=0,priority=32768,ether
 $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=0,priority=0 actions="
 
 # IPv4 LPM (Table 1)
-$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=1,priority=32768,ipv4__dstAddr=0xC0A80001/0xFFFFFF00 \
-                                                    actions=set_field:0xAC1E82D9->routing_metadata_nhop_ipv4, \
-                                                            set_field:1->reg0, \
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=1,priority=32768,ipv4__dstAddr=0x0A00000F/0xFFFFFF00 \
+                                                    actions=set_field:0x0B00000F->routing_metadata_nhop_ipv4, \
+                                                            set_field:2->reg0, \
                                                             set_field:63->ipv4__ttl, \
                                                             resubmit(,2)"
-$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=1,priority=32768,ipv4__dstAddr=0xC0A80101/0xFFFFFF00 \
-                                                    actions=set_field:0xAC1F83DA->routing_metadata_nhop_ipv4, \
-                                                            set_field:2->reg0, \
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=1,priority=32768,ipv4__dstAddr=0x0A000011/0xFFFFFF00 \
+                                                    actions=set_field:0x0B000011->routing_metadata_nhop_ipv4, \
+                                                            set_field:5->reg0, \
+                                                            set_field:63->ipv4__ttl, \
+                                                            resubmit(,2)"
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=1,priority=32768,ipv4__dstAddr=0x0A000013/0xFFFFFF00 \
+                                                    actions=set_field:0x0B000013->routing_metadata_nhop_ipv4, \
+                                                            set_field:6->reg0, \
                                                             set_field:63->ipv4__ttl, \
                                                             resubmit(,2)"
 $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=1,priority=0 actions="
 
 # Forward (Table 2)
-$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,routing_metadata_nhop_ipv4=0xAC1E82D9 \
-                                                    actions=set_field:0xf8bc120ab5e0->ethernet__dstAddr, \
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,routing_metadata_nhop_ipv4=0x0B00000F \
+                                                    actions=set_field:0x111112131415->ethernet__dstAddr, \
                                                             resubmit(,3)"
-$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,routing_metadata_nhop_ipv4=0xAC1F83DA \
-                                                    actions=set_field:0x3cfdfe05b9c0->ethernet__dstAddr, \
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,routing_metadata_nhop_ipv4=0x0B000011 \
+                                                    actions=set_field:0x111112131417->ethernet__dstAddr, \
+                                                            resubmit(,3)"
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,routing_metadata_nhop_ipv4=0x0B000013 \
+                                                    actions=set_field:0x111112131419->ethernet__dstAddr, \
                                                             resubmit(,3)"
 $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=0 actions="
 
 # Send Frame (Table 3)
-$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=3,priority=32768,reg0=1 \
-                                                    actions=set_field:0xf8bc120ab5e0->ethernet__srcAddr, \
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=3,priority=32768,reg0=2 \
+                                                    actions=set_field:0x111112131414->ethernet__srcAddr, \
 							    calc_fields_update(ipv4__hdrChecksum,csum16,fields:ipv4__version_ihl,ipv4__diffserv,ipv4__totalLen,ipv4__identification,ipv4__flags_fragOffset,ipv4__ttl,ipv4__protocol,ipv4__srcAddr,ipv4__dstAddr), \
                                                             deparse, \
                                                             output:NXM_NX_REG0[]"
-$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=3,priority=32768,reg0=2 \
-                                                    actions=set_field:0x3cfdfe05b9c0->ethernet__srcAddr, \
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=3,priority=32768,reg0=5 \
+                                                    actions=set_field:0x111112131416->ethernet__srcAddr, \
+							    calc_fields_update(ipv4__hdrChecksum,csum16,fields:ipv4__version_ihl,ipv4__diffserv,ipv4__totalLen,ipv4__identification,ipv4__flags_fragOffset,ipv4__ttl,ipv4__protocol,ipv4__srcAddr,ipv4__dstAddr), \
+                                                            deparse, \
+                                                            output:NXM_NX_REG0[]"
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=3,priority=32768,reg0=6 \
+                                                    actions=set_field:0x111112131418->ethernet__srcAddr, \
 							    calc_fields_update(ipv4__hdrChecksum,csum16,fields:ipv4__version_ihl,ipv4__diffserv,ipv4__totalLen,ipv4__identification,ipv4__flags_fragOffset,ipv4__ttl,ipv4__protocol,ipv4__srcAddr,ipv4__dstAddr), \
                                                             deparse, \
                                                             output:NXM_NX_REG0[]"
