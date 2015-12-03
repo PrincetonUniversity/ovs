@@ -8,7 +8,7 @@ $DIR/ovs-ofctl --protocols=OpenFlow15 del-flows br0
 
 # Verify Checksum (Table 0)
 $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=0,priority=32768,dl_type=0x800 \
-						                                    resubmit(,1)"
+						                            actions=resubmit(,1)"
 $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=0,priority=0 actions="
 
 # IPv4 LPM (Table 1)
