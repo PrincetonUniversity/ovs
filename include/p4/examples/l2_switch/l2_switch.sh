@@ -23,4 +23,4 @@ $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,in_po
 $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,in_port=4,reg0=4 actions="
 $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,in_port=5,reg0=5 actions="
 $DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=32768,in_port=6,reg0=6 actions="
-$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=0                                               actions=output:NXM_NX_REG0[]"
+$DIR/ovs-ofctl --protocols=OpenFlow15 add-flow br0 "table=2,priority=0                                               actions=deparse,output:NXM_NX_REG0[]"
