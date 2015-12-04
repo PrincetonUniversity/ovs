@@ -109,7 +109,8 @@ EXTRA_DIST = \
 	build-aux/xml2nroff \
 	$(MAN_FRAGMENTS) \
 	$(MAN_ROOTS) \
-	Vagrantfile
+	Vagrantfile \
+    build.sh
 bin_PROGRAMS =
 sbin_PROGRAMS =
 bin_SCRIPTS =
@@ -397,3 +398,4 @@ include datapath-windows/automake.mk
 include datapath-windows/include/automake.mk
 include windows/automake.mk
 include ovn/automake.mk
+include setup-scripts/automake.mk

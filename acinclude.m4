@@ -237,6 +237,23 @@ AC_DEFUN([OVS_CHECK_DPDK], [
   AM_CONDITIONAL([DPDK_NETDEV], test -n "$RTE_SDK")
 ])
 
+AC_DEFUN([OVS_CHECK_P4], [
+  AC_ARG_VAR([p4inputfile], [Specify the p4 input file])
+  AC_ARG_VAR([p4outputdir], [Specify the p4 output directory])
+  AS_IF([test -z "$p4inputfile"],
+        [AC_MSG_ERROR([missing arguments for p4 input file])])
+  AS_IF([test ! -e "$p4inputfile"],
+        [AC_MSG_ERROR([p4 input file does not exist])])
+  AS_IF([test -z "$p4outputdir"],
+        [AC_MSG_ERROR([missing arguments for p4 output dir])])
+  AS_IF([test -d "$p4outputdir"], [rm -rf $p4outputdir], [])
+
+  mkdir -p $p4outputdir
+  p4c-behavioral $p4inputfile --gen-dir $p4outputdir/temp --plugin ovs --ovs-parser-imp 1
+  mv $p4outputdir/temp/plugin/ovs/public_inc/*.h $p4outputdir
+  rm -rf $p4outputdir/temp
+])
+
 dnl OVS_GREP_IFELSE(FILE, REGEX, [IF-MATCH], [IF-NO-MATCH])
 dnl
 dnl Greps FILE for REGEX.  If it matches, runs IF-MATCH, otherwise IF-NO-MATCH.
