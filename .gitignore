@@ -70,3 +70,6 @@ OvsDpInterface.h
 testsuite.tmp.orig
 src/
 nbproject/
+.cproject
+
+.project
