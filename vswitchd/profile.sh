@@ -6,7 +6,8 @@ source ./helpers/setup-vars-ovs-dpdk.sh
 
 # Profile
 cd ..
-operf -g ./vswitchd/ovs-vswitchd --dpdk -c 0x1 -n 4 -- unix:$DB_SOCK --pidfile
+#operf -g ./vswitchd/ovs-vswitchd --dpdk -c 0x1 -n 4 -- unix:$DB_SOCK --pidfile
+operf -g -e lock_cycles:30000045:0x02 ./vswitchd/ovs-vswitchd --dpdk -c 0x1 -n 4 -- unix:$DB_SOCK --pidfile
 
 mkdir -p ./oprofile_data/opreport
 
