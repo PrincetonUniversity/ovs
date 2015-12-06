@@ -16,7 +16,9 @@ vswitchd_ovs_vswitchd_LDADD = \
 	lib/libsflow.la \
 	lib/libopenvswitch.la
 vswitchd_ovs_vswitchd_LDFLAGS = $(AM_LDFLAGS) $(DPDK_vswitchd_LDFLAGS)
-EXTRA_DIST += vswitchd/INTERNALS
+EXTRA_DIST += \
+	vswitchd/INTERNALS \
+	vswitchd/profile.sh
 MAN_ROOTS += vswitchd/ovs-vswitchd.8.in
 
 # vswitch schema and IDL
