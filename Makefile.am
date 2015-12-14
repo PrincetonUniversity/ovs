@@ -112,7 +112,7 @@ EXTRA_DIST = \
 	Vagrantfile \
     build.sh \
     .gitmodules \
-    deps
+    deps/dpdk
 bin_PROGRAMS =
 sbin_PROGRAMS =
 bin_SCRIPTS =
