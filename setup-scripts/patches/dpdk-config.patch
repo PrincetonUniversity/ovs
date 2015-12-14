@@ -8,7 +8,6 @@ index 0de43d5..b36a04c 100644
  #
 -CONFIG_RTE_BUILD_COMBINE_LIBS=n
 +CONFIG_RTE_BUILD_COMBINE_LIBS=y
-
+ 
  #
  # Use newest code breaking previous ABI
- 
