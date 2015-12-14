@@ -110,7 +110,9 @@ EXTRA_DIST = \
 	$(MAN_FRAGMENTS) \
 	$(MAN_ROOTS) \
 	Vagrantfile \
-    build.sh
+    build.sh \
+    .gitmodules \
+    deps
 bin_PROGRAMS =
 sbin_PROGRAMS =
 bin_SCRIPTS =
