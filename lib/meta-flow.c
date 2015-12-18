@@ -1028,7 +1028,7 @@ mf_set_value(const struct mf_field *mf,
         match_set_nd_target(match, &value->ipv6);
         break;
 
-    OVS_SET_VLAUE_CASES /* @Shahbaz: */
+    OVS_SET_VALUE_CASES /* @Shahbaz: */
 
     case MFF_N_IDS:
     default:

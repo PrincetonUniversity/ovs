@@ -4696,9 +4696,13 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
                     
         /* @Shahbaz: */
         case OFPACT_ADD_TO_FIELD: {
+
             const struct ofpact_add_to_field *add_to_field;
+
             add_to_field = ofpact_get_ADD_TO_FIELD(a);
+
             compose_add_to_field(ctx, add_to_field);
+
             break;
         }
           
@@ -4712,6 +4716,7 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         
         /* @Shahbaz: */
         case OFPACT_CALC_FIELDS_VERIFY: {
+
             const struct ofpact_calc_fields *calc_fields;
             calc_fields = ofpact_get_CALC_FIELDS_VERIFY(a);
             compose_calc_fields_verify(ctx, calc_fields);
