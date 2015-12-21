@@ -4255,7 +4255,7 @@ apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
 
 
 static void 
-compose_sub_from_field(struct xlate_ctx *ctx, 
+xlate_sub_from_field(struct xlate_ctx *ctx, 
                        const struct ofpact_sub_from_field *sub_from_field) 
 { 
     // Set the field and the prerequisites
@@ -4280,7 +4280,7 @@ compose_sub_from_field(struct xlate_ctx *ctx,
 }
 
 static void 
-compose_add_to_field(struct xlate_ctx *ctx, 
+xlate_add_to_field(struct xlate_ctx *ctx, 
                    const struct ofpact_add_to_field *add_to_field) 
 {
     // Set the field and the prerequisites
@@ -4690,19 +4690,15 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         case OFPACT_SUB_FROM_FIELD: {
             const struct ofpact_sub_from_field *sub_from_field;
             sub_from_field = ofpact_get_SUB_FROM_FIELD(a);
-            compose_sub_from_field(ctx, sub_from_field);
+            xlate_sub_from_field(ctx, sub_from_field);
             break;
         }
                     
         /* @Shahbaz: */
         case OFPACT_ADD_TO_FIELD: {
-
             const struct ofpact_add_to_field *add_to_field;
-
             add_to_field = ofpact_get_ADD_TO_FIELD(a);
-
-            compose_add_to_field(ctx, add_to_field);
-
+            xlate_add_to_field(ctx, add_to_field);
             break;
         }
           
