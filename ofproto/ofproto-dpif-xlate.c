@@ -4142,8 +4142,6 @@ static void
 compose_calc_fields_verify(struct xlate_ctx *ctx, 
                            const struct ofpact_calc_fields *cf) 
 { 
-    struct flow_wildcards *wc = ctx->wc;
-    struct flow *flow = &ctx->xin->flow;
     bool use_masked = ctx->xbridge->support.masked_set_action; 
     ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
                                           ctx->odp_actions, ctx->wc, 
@@ -4194,8 +4192,6 @@ static void
 compose_calc_fields_update(struct xlate_ctx *ctx, 
                            const struct ofpact_calc_fields *cf) 
 { 
-    struct flow_wildcards *wc = ctx->wc;
-    struct flow *flow = &ctx->xin->flow;
     bool use_masked = ctx->xbridge->support.masked_set_action; 
     ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow, 
                                           ctx->odp_actions, ctx->wc, 
