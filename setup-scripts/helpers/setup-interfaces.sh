@@ -62,6 +62,10 @@ elif [ $name == "mshahbaz-poweredge-2-pve" ]; then
 $sdk/tools/dpdk_nic_bind.py -b igb_uio 01:00.0 01:00.1 05:00.0 05:00.1 05:00.2 05:00.3
 elif [ $name == "mshahbaz-poweredge-3-pve" ]; then
 $sdk/tools/dpdk_nic_bind.py -b igb_uio 01:00.0 01:00.1 05:00.0 05:00.1 05:00.2 05:00.3
+elif [ $name == "ubuntu" ]; then
+ip link set eth1 down
+ip link set eth2 down
+$sdk/tools/dpdk_nic_bind.py -b igb_uio 00:08.0 00:09.0
 else 
 echo "Hostname not handled"
 exit 1

@@ -18,7 +18,7 @@ source ./helpers/setup-vars-ovs-dpdk.sh
 cd ../
 ./boot.sh
 ./configure --with-dpdk=$DPDK_BUILD CFLAGS="-g -O2 -Wno-cast-align" \
-            p4inputfile=./include/p4/examples/l2_switch/l2_switch.p4 \
+            p4inputfile=/home/ubuntu/p4c-behavioral/tests/simple_router.p4 \
             p4outputdir=./include/p4/src
 make clean
 make -j 8
