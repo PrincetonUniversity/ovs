@@ -31,4 +31,8 @@ EXTRA_DIST += \
 	include/p4/examples/simple_router/simple_router.p4 \
 	include/p4/examples/simple_router/simple_router.sh \
 	include/p4/examples/simple_router/vanilla_simple_router.sh \
-	include/p4/examples/simple_router/passthrough.sh
+	include/p4/examples/simple_router/passthrough.sh \
+	include/p4/sigcomm16/parser/parser--eth.p4 \
+	include/p4/sigcomm16/parser/parser--eth-ip.p4 \
+	include/p4/sigcomm16/parser/parser--eth-ip-tcp.p4
+	

@@ -6,4 +6,5 @@ EXTRA_DIST += \
 	setup-scripts/setup-ovs.sh \
 	setup-scripts/utilities/setup-bridge.sh \
 	setup-scripts/utilities/clean-bridge.sh \
+	setup-scripts/utilities/ovs-ofctl/passthrough.sh \
 	setup-scripts/patches/dpdk-config.patch
