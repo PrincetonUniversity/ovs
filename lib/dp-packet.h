@@ -276,6 +276,8 @@ dp_packet_reset_offsets(struct dp_packet *b)
     OVS_HDR_RESET_ATTRS /* @Shahbaz: */
 }
 
+OVS_HDR_GET_DP_PACKET_OFS /* @Shahbaz: */
+
 static inline uint8_t
 dp_packet_l2_pad_size(const struct dp_packet *b)
 {
