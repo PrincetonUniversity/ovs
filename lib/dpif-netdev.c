@@ -2531,11 +2531,6 @@ cycles_count_end(struct dp_netdev_pmd_thread *pmd,
     unsigned long long interval = cycles_counter() - pmd->last_cycles[type];
 
     non_atomic_ullong_add(&pmd->cycles.n[type], interval);
-//    non_atomic_ullong_add(&pmd->cycles.s[type], 1);
-
-    // @Shahbaz: talk to Ben about this?
-//    if (type == PMD_CYCLES_PROCESSING)
-//    	printf("%lld\n", interval);
 }
 
 static void
