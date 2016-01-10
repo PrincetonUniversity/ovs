@@ -244,6 +244,11 @@ enum dp_stat_type {
 enum pmd_cycles_counter_type {
     PMD_CYCLES_POLLING,         /* Cycles spent polling NICs. */
     PMD_CYCLES_PROCESSING,      /* Cycles spent processing packets */
+	PMD_CYCLES_PARSING,      	/* Cycles spent parsing packets */
+	PMD_CYCLES_EMC_PROCESSING,
+	PMD_CYCLES_FP_PROCESSING,
+	PMD_CYCLES_EMC_LOOKUP,
+	PMD_CYCLES_DP_ACTIONS,      /* Cycles spent in datapath actions */
     PMD_N_CYCLES
 };
 
@@ -420,7 +425,7 @@ struct dp_netdev_pmd_thread {
     struct dp_netdev_pmd_cycles cycles;
 
     /* Used to count cicles. See 'cycles_counter_end()' */
-    unsigned long long last_cycles;
+    unsigned long long last_cycles[PMD_N_CYCLES];
 
     struct latch exit_latch;        /* For terminating the pmd thread. */
     atomic_uint change_seq;         /* For reloading pmd ports. */
@@ -562,6 +567,7 @@ pmd_info_show_stats(struct ds *reply,
 {
     unsigned long long total_packets = 0;
     uint64_t total_cycles = 0;
+    uint64_t total_samples = 0;
     int i;
 
     /* These loops subtracts reference values ('*_zero') from the counters.
@@ -636,6 +642,36 @@ pmd_info_show_stats(struct ds *reply,
                   "%.02f (%"PRIu64"/%llu)\n",
                   cycles[PMD_CYCLES_PROCESSING] / (double)total_packets,
                   cycles[PMD_CYCLES_PROCESSING], total_packets);
+
+    ds_put_format(reply,
+                      "\tavg parsing cycles per packet: "
+                      "%.02f (%"PRIu64"/%llu)\n",
+                      cycles[PMD_CYCLES_PARSING] / (double)total_packets,
+                      cycles[PMD_CYCLES_PARSING], total_packets);
+
+    ds_put_format(reply,
+                             "\tavg emc cycles per packet: "
+                             "%.02f (%"PRIu64"/%llu)\n",
+                             cycles[PMD_CYCLES_EMC_PROCESSING] / (double)total_packets,
+                             cycles[PMD_CYCLES_EMC_PROCESSING], total_packets);
+
+    ds_put_format(reply,
+                                 "\tavg fastpath cycles per packet: "
+                                 "%.02f (%"PRIu64"/%llu)\n",
+                                 cycles[PMD_CYCLES_FP_PROCESSING] / (double)total_packets,
+                                 cycles[PMD_CYCLES_FP_PROCESSING], total_packets);
+
+    ds_put_format(reply,
+                         "\tavg datapath actions' cycles per packet: "
+                         "%.02f (%"PRIu64"/%llu)\n",
+                         cycles[PMD_CYCLES_DP_ACTIONS] / (double)total_packets,
+                         cycles[PMD_CYCLES_DP_ACTIONS], total_packets);
+
+    ds_put_format(reply,
+                             "\tavg emc lookup cycles per packet: "
+                             "%.02f (%"PRIu64"/%llu)\n",
+                             cycles[PMD_CYCLES_EMC_LOOKUP] / (double)total_packets,
+                             cycles[PMD_CYCLES_EMC_LOOKUP], total_packets);
 }
 
 static void
@@ -2478,11 +2514,11 @@ extern struct ovs_mutex cycles_counter_fake_mutex;
 
 /* Start counting cycles.  Must be followed by 'cycles_count_end()' */
 static inline void
-cycles_count_start(struct dp_netdev_pmd_thread *pmd)
+cycles_count_start(struct dp_netdev_pmd_thread *pmd, enum pmd_cycles_counter_type type)
     OVS_ACQUIRES(&cycles_counter_fake_mutex)
     OVS_NO_THREAD_SAFETY_ANALYSIS
 {
-    pmd->last_cycles = cycles_counter();
+    pmd->last_cycles[type] = cycles_counter();
 }
 
 /* Stop counting cycles and add them to the counter 'type' */
@@ -2492,9 +2528,14 @@ cycles_count_end(struct dp_netdev_pmd_thread *pmd,
     OVS_RELEASES(&cycles_counter_fake_mutex)
     OVS_NO_THREAD_SAFETY_ANALYSIS
 {
-    unsigned long long interval = cycles_counter() - pmd->last_cycles;
+    unsigned long long interval = cycles_counter() - pmd->last_cycles[type];
 
     non_atomic_ullong_add(&pmd->cycles.n[type], interval);
+//    non_atomic_ullong_add(&pmd->cycles.s[type], 1);
+
+    // @Shahbaz: talk to Ben about this?
+//    if (type == PMD_CYCLES_PROCESSING)
+//    	printf("%lld\n", interval);
 }
 
 static void
@@ -2505,7 +2546,7 @@ dp_netdev_process_rxq_port(struct dp_netdev_pmd_thread *pmd,
     struct dp_packet *packets[NETDEV_MAX_BURST];
     int error, cnt;
 
-    cycles_count_start(pmd);
+    cycles_count_start(pmd, PMD_CYCLES_POLLING);
     error = netdev_rxq_recv(rxq, packets, &cnt);
     cycles_count_end(pmd, PMD_CYCLES_POLLING);
     if (!error) {
@@ -2517,9 +2558,9 @@ dp_netdev_process_rxq_port(struct dp_netdev_pmd_thread *pmd,
         for (i = 0; i < cnt; i++) {
             pkt_metadata_init(&packets[i]->md, port->port_no);
         }
-        cycles_count_start(pmd);
+//        cycles_count_start(pmd, PMD_CYCLES_PROCESSING);
         dp_netdev_input(pmd, packets, cnt);
-        cycles_count_end(pmd, PMD_CYCLES_PROCESSING);
+//        cycles_count_end(pmd, PMD_CYCLES_PROCESSING);
     } else if (error != EAGAIN && error != EOPNOTSUPP) {
         static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(1, 5);
 
@@ -3204,12 +3245,12 @@ emc_processing(struct dp_netdev_pmd_thread *pmd, struct dp_packet **packets,
                size_t cnt, struct netdev_flow_key *keys,
                struct packet_batch batches[], size_t *n_batches)
 {
-    struct emc_cache *flow_cache = &pmd->flow_cache;
+//    struct emc_cache *flow_cache = &pmd->flow_cache;
     struct netdev_flow_key key;
     size_t i, notfound_cnt = 0;
 
     for (i = 0; i < cnt; i++) {
-        struct dp_netdev_flow *flow;
+//        struct dp_netdev_flow *flow;
 
         if (OVS_UNLIKELY(dp_packet_size(packets[i]) < ETH_HEADER_LEN)) {
             dp_packet_delete(packets[i]);
@@ -3221,24 +3262,29 @@ emc_processing(struct dp_netdev_pmd_thread *pmd, struct dp_packet **packets,
             OVS_PREFETCH(dp_packet_data(packets[i+1]));
         }
 
+        cycles_count_start(pmd, PMD_CYCLES_PARSING);
         miniflow_extract(packets[i], &key.mf);
-        key.len = 0; /* Not computed yet. */
-        key.hash = dpif_netdev_packet_get_rss_hash(packets[i], &key.mf);
+        cycles_count_end(pmd, PMD_CYCLES_PARSING);
 
-        flow = emc_lookup(flow_cache, &key);
-        if (OVS_LIKELY(flow)) {
-            dp_netdev_queue_batches(packets[i], flow, &key.mf, batches,
-                                    n_batches);
-        } else {
-            if (i != notfound_cnt) {
-                dp_packet_swap(&packets[i], &packets[notfound_cnt]);
-            }
+        key.len = 0; /* Not computed yet. */
+//        key.hash = dpif_netdev_packet_get_rss_hash(packets[i], &key.mf);
+//
+//        cycles_count_start(pmd, PMD_CYCLES_EMC_LOOKUP);
+//        flow = emc_lookup(flow_cache, &key);
+//        cycles_count_end(pmd, PMD_CYCLES_EMC_LOOKUP);
+//        if (OVS_LIKELY(flow)) {
+//            dp_netdev_queue_batches(packets[i], flow, &key.mf, batches,
+//                                    n_batches);
+//        } else {
+//            if (i != notfound_cnt) {
+//                dp_packet_swap(&packets[i], &packets[notfound_cnt]);
+//            }
 
             keys[notfound_cnt++] = key;
-        }
+//        }
     }
 
-    dp_netdev_count_packet(pmd, DP_STAT_EXACT_HIT, cnt - notfound_cnt);
+//    dp_netdev_count_packet(pmd, DP_STAT_EXACT_HIT, cnt - notfound_cnt);
 
     return notfound_cnt;
 }
@@ -3268,7 +3314,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
     }
     any_miss = !dpcls_lookup(&pmd->cls, keys, rules, cnt);
     if (OVS_UNLIKELY(any_miss) && !fat_rwlock_tryrdlock(&dp->upcall_rwlock)) {
-        uint64_t actions_stub[512 / 8], slow_stub[512 / 8];
+    	uint64_t actions_stub[512 / 8], slow_stub[512 / 8];
         struct ofpbuf actions, put_actions;
         ovs_u128 ufid;
 
@@ -3344,7 +3390,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
                 }
                 ovs_mutex_unlock(&pmd->flow_mutex);
 
-                emc_insert(flow_cache, &keys[i], netdev_flow);
+//                emc_insert(flow_cache, &keys[i], netdev_flow);
             }
         }
 
@@ -3372,7 +3418,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
 
         flow = dp_netdev_flow_cast(rules[i]);
 
-        emc_insert(flow_cache, &keys[i], flow);
+//        emc_insert(flow_cache, &keys[i], flow);
         dp_netdev_queue_batches(packet, flow, &keys[i].mf, batches, n_batches);
     }
 
@@ -3385,6 +3431,8 @@ static void
 dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
                 struct dp_packet **packets, int cnt)
 {
+	cycles_count_start(pmd, PMD_CYCLES_PROCESSING);
+	cycles_count_start(pmd, PMD_CYCLES_EMC_PROCESSING);
 #if !defined(__CHECKER__) && !defined(_WIN32)
     const size_t PKT_ARRAY_SIZE = cnt;
 #else
@@ -3398,10 +3446,14 @@ dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
 
     n_batches = 0;
     newcnt = emc_processing(pmd, packets, cnt, keys, batches, &n_batches);
+    cycles_count_end(pmd, PMD_CYCLES_EMC_PROCESSING);
+    cycles_count_start(pmd, PMD_CYCLES_FP_PROCESSING);
     if (OVS_UNLIKELY(newcnt)) {
         fast_path_processing(pmd, packets, newcnt, keys, batches, &n_batches);
     }
+    cycles_count_end(pmd, PMD_CYCLES_FP_PROCESSING);
 
+    cycles_count_start(pmd, PMD_CYCLES_DP_ACTIONS);
     for (i = 0; i < n_batches; i++) {
         batches[i].flow->batch = NULL;
     }
@@ -3409,6 +3461,8 @@ dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
     for (i = 0; i < n_batches; i++) {
         packet_batch_execute(&batches[i], pmd, now);
     }
+    cycles_count_end(pmd, PMD_CYCLES_DP_ACTIONS);
+    cycles_count_end(pmd, PMD_CYCLES_PROCESSING);
 }
 
 struct dp_netdev_execute_aux {

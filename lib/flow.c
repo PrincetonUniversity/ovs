@@ -232,6 +232,15 @@ BUILD_MESSAGE("FLOW_WC_SEQ changed: miniflow_extract() will have runtime "
     MF.data += (N_WORDS);                                       \
 }
 
+/* @Shahbaz: Data at 'valuep' may be unaligned. */
+#define miniflow_push_bytes__word_aligned_(MF, OFS, VALUEP, N_BYTES, N_WORDS) \
+{                                                               \
+    MINIFLOW_ASSERT((OFS) % 8 == 0);                            \
+    miniflow_set_maps(MF, (OFS) / 8, (N_WORDS));                \
+    memcpy(MF.data, (VALUEP), N_BYTES/*(N_WORDS) * sizeof *MF.data*/); \
+    MF.data += (N_WORDS);                                       \
+}
+
 /* Push 32-bit words padded to 64-bits. */
 #define miniflow_push_words_32_(MF, OFS, VALUEP, N_WORDS)               \
 {                                                                       \
@@ -269,6 +278,9 @@ BUILD_MESSAGE("FLOW_WC_SEQ changed: miniflow_extract() will have runtime "
 
 #define miniflow_push_words(MF, FIELD, VALUEP, N_WORDS)                 \
     miniflow_push_words_(MF, offsetof(struct flow, FIELD), VALUEP, N_WORDS)
+
+#define miniflow_push_bytes__word_aligned(MF, FIELD, VALUEP, N_BYTES, N_WORDS)                 \
+		miniflow_push_bytes__word_aligned_(MF, offsetof(struct flow, FIELD), VALUEP, N_BYTES, N_WORDS)
 
 #define miniflow_push_words_32(MF, FIELD, VALUEP, N_WORDS)              \
     miniflow_push_words_32_(MF, offsetof(struct flow, FIELD), VALUEP, N_WORDS)
@@ -451,28 +463,28 @@ miniflow_extract(struct dp_packet *packet, struct miniflow *dst)
     // uint8_t nw_frag, nw_tos, nw_ttl, nw_proto;
 
     /* Metadata. */
-    if (md->tunnel.ip_dst) {
-        miniflow_push_words(mf, tunnel, &md->tunnel,
-                            offsetof(struct flow_tnl, metadata) /
-                            sizeof(uint64_t));
-
-        if (!(md->tunnel.flags & FLOW_TNL_F_UDPIF)) {
-            if (md->tunnel.metadata.present.map) {
-                miniflow_push_words(mf, tunnel.metadata, &md->tunnel.metadata,
-                                    sizeof md->tunnel.metadata /
-                                    sizeof(uint64_t));
-            }
-        } else {
-            if (md->tunnel.metadata.present.len) {
-                miniflow_push_words(mf, tunnel.metadata.present,
-                                    &md->tunnel.metadata.present, 1);
-                miniflow_push_words(mf, tunnel.metadata.opts.gnv,
-                                    md->tunnel.metadata.opts.gnv,
-                                    DIV_ROUND_UP(md->tunnel.metadata.present.len,
-                                                 sizeof(uint64_t)));
-            }
-        }
-    }
+//    if (md->tunnel.ip_dst) {
+//        miniflow_push_words(mf, tunnel, &md->tunnel,
+//                            offsetof(struct flow_tnl, metadata) /
+//                            sizeof(uint64_t));
+//
+//        if (!(md->tunnel.flags & FLOW_TNL_F_UDPIF)) {
+//            if (md->tunnel.metadata.present.map) {
+//                miniflow_push_words(mf, tunnel.metadata, &md->tunnel.metadata,
+//                                    sizeof md->tunnel.metadata /
+//                                    sizeof(uint64_t));
+//            }
+//        } else {
+//            if (md->tunnel.metadata.present.len) {
+//                miniflow_push_words(mf, tunnel.metadata.present,
+//                                    &md->tunnel.metadata.present, 1);
+//                miniflow_push_words(mf, tunnel.metadata.opts.gnv,
+//                                    md->tunnel.metadata.opts.gnv,
+//                                    DIV_ROUND_UP(md->tunnel.metadata.present.len,
+//                                                 sizeof(uint64_t)));
+//            }
+//        }
+//    }
     if (md->skb_priority || md->pkt_mark) {
         miniflow_push_uint32(mf, skb_priority, md->skb_priority);
         miniflow_push_uint32(mf, pkt_mark, md->pkt_mark);
