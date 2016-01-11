@@ -247,6 +247,7 @@ enum pmd_cycles_counter_type {
 	PMD_CYCLES_FP_PROCESSING,
 	PMD_CYCLES_EMC_LOOKUP,
 	PMD_CYCLES_MEGAFLOW,
+	PMD_CYCLES_SP_PROCESSING,
 	PMD_CYCLES_DP_ACTIONS,      /* Cycles spent in datapath actions */
     PMD_N_CYCLES
 };
@@ -677,6 +678,12 @@ pmd_info_show_stats(struct ds *reply,
                           "%.02f (%"PRIu64"/%llu)\n",
                           cycles[PMD_CYCLES_MEGAFLOW] / (double)total_packets,
                           cycles[PMD_CYCLES_MEGAFLOW], total_packets);
+
+    ds_put_format(reply,
+                              "\tavg slowpath cycles per packet: "
+                              "%.02f (%"PRIu64"/%llu)\n",
+                              cycles[PMD_CYCLES_SP_PROCESSING] / (double)stats[DP_STAT_MISS],
+                              cycles[PMD_CYCLES_SP_PROCESSING], stats[DP_STAT_MISS]);
 }
 
 static void
@@ -3316,6 +3323,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
     any_miss = !dpcls_lookup(&pmd->cls, keys, rules, cnt);
     cycles_count_end(pmd, PMD_CYCLES_MEGAFLOW);
     if (OVS_UNLIKELY(any_miss) && !fat_rwlock_tryrdlock(&dp->upcall_rwlock)) {
+    	cycles_count_start(pmd, PMD_CYCLES_SP_PROCESSING);
     	uint64_t actions_stub[512 / 8], slow_stub[512 / 8];
         struct ofpbuf actions, put_actions;
         ovs_u128 ufid;
@@ -3400,6 +3408,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
         ofpbuf_uninit(&put_actions);
         fat_rwlock_unlock(&dp->upcall_rwlock);
         dp_netdev_count_packet(pmd, DP_STAT_LOST, lost_cnt);
+        cycles_count_end(pmd, PMD_CYCLES_SP_PROCESSING);
     } else if (OVS_UNLIKELY(any_miss)) {
         for (i = 0; i < cnt; i++) {
             if (OVS_UNLIKELY(!rules[i])) {
