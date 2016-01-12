@@ -543,7 +543,8 @@ void apply_mask_0(const uint8_t *src, const uint8_t *mask, uint8_t *dst,
                   size_t n);
 void apply_mask_1(const uint8_t *key, const uint8_t * header,
                   const uint8_t *mask, uint8_t *res, size_t);
-
+void apply_mask_1_u16(const uint16_t *key, const uint16_t * header,
+                    const uint16_t *mask, uint16_t *res, size_t);
 bool is_all_zeros(const void *, size_t);
 bool is_all_ones(const void *, size_t);
 void bitwise_copy(const void *src, unsigned int src_len, unsigned int src_ofs,

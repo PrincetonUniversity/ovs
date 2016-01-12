@@ -1228,6 +1228,15 @@ void apply_mask_1(const uint8_t *key, const uint8_t * header,
     }
 }
 
+/* @Shahbaz: */
+void apply_mask_1_u16(const uint16_t *key, const uint16_t * header,
+                    const uint16_t *mask, uint16_t *res, size_t n_shorts) {
+    int i;
+    for (i = 0; i < n_shorts; i++) {
+        res[i] = key[i] | (header[i] & ~mask[i]);
+    }
+}
+
 /* Copies 'n_bits' bits starting from bit 'src_ofs' in 'src' to the 'n_bits'
  * starting from bit 'dst_ofs' in 'dst'.  'src' is 'src_len' bytes long and
  * 'dst' is 'dst_len' bytes long.
