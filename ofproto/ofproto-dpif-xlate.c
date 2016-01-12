@@ -4242,6 +4242,45 @@ compose_calc_fields_update(struct xlate_ctx *ctx,
 }
 
 /* @Shahbaz: */
+/* Consider each of 'src', 'mask', and 'dst' as if they were arrays of 8*n
+ * bits.  Then, for each 0 <= i < 8 * n such that mask[i] == 1, sets dst[i] =
+ * src[i].  */
+static void
+apply_mask(const uint8_t *src, const uint8_t *mask, uint8_t *dst, size_t n)
+{
+    size_t i;
+    for (i = 0; i < n; i++) {
+        dst[i] = (src[i] & mask[i]) | (dst[i] & ~mask[i]);
+    }
+}
+
+/* @Shahbaz: */
+static void
+xlate_sub_from_field(struct xlate_ctx *ctx,
+                     const struct ofpact_sub_from_field *sub_from_field)
+{
+    struct flow_wildcards *wc = ctx->wc;
+    struct flow *flow = &ctx->xin->flow;
+
+    const struct mf_field *mf = sub_from_field->field;
+    const union mf_value *value = &sub_from_field->value;
+
+    // @Sean: handling cases for masked field
+    const union mf_value *mask = &sub_from_field->mask;
+
+    mf_mask_field_and_prereqs(mf, wc);
+    if (mf_are_prereqs_ok(mf, flow)) {
+        switch (mf->id) {
+        OVS_XLATE_SUB_FROM_FIELD_CASES /* @Shahbaz: */
+
+        case MFF_N_IDS:
+        default:
+            OVS_NOT_REACHED();
+        }
+    }
+}
+
+/* @Shahbaz: */
 static void 
 compose_sub_from_field_(struct xlate_ctx *ctx, enum ovs_key_attr key,
                         const void *value, size_t size)
@@ -4287,6 +4326,32 @@ compose_sub_from_field(struct xlate_ctx *ctx,
 
 /* @Shahbaz: */
 static void 
+xlate_add_to_field(struct xlate_ctx *ctx,
+                   const struct ofpact_add_to_field *add_to_field)
+{
+    struct flow_wildcards *wc = ctx->wc;
+    struct flow *flow = &ctx->xin->flow;
+
+    const struct mf_field *mf = add_to_field->field;
+    const union mf_value *value = &add_to_field->value;
+
+    // @Sean: handling cases for masked field
+    const union mf_value *mask = &add_to_field->mask;
+
+    mf_mask_field_and_prereqs(mf, wc);
+    if (mf_are_prereqs_ok(mf, flow)) {
+        switch (mf->id) {
+        OVS_XLATE_ADD_TO_FIELD_CASES /* @Shahbaz: */
+
+        case MFF_N_IDS:
+        default:
+            OVS_NOT_REACHED();
+        }
+    }
+}
+
+/* @Shahbaz: */
+static void
 compose_add_to_field_(struct xlate_ctx *ctx, enum ovs_key_attr key,
                      const void *value, size_t size)
 {
@@ -4714,7 +4779,8 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         case OFPACT_SUB_FROM_FIELD: {
             const struct ofpact_sub_from_field *sub_from_field;
             sub_from_field = ofpact_get_SUB_FROM_FIELD(a);
-            compose_sub_from_field(ctx, sub_from_field);
+//            compose_sub_from_field(ctx, sub_from_field);
+            xlate_sub_from_field(ctx, sub_from_field);
             break;
         }
                     
@@ -4722,7 +4788,8 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
         case OFPACT_ADD_TO_FIELD: {
             const struct ofpact_add_to_field *add_to_field;
             add_to_field = ofpact_get_ADD_TO_FIELD(a);
-            compose_add_to_field(ctx, add_to_field);
+//            compose_add_to_field(ctx, add_to_field);
+            xlate_add_to_field(ctx, add_to_field);
             break;
         }
           
