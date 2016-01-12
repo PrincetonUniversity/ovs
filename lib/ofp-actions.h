@@ -420,8 +420,7 @@ struct ofpact_set_field {
  */
 struct ofpact_add_header {
     struct ofpact ofpact;
-    unsigned int n_bytes;
-    uint8_t name[];
+    uint32_t header_id;
 };
 
 /* @Shahbaz: */
@@ -429,8 +428,7 @@ struct ofpact_add_header {
  */
 struct ofpact_remove_header {
     struct ofpact ofpact;
-    unsigned int n_bytes;
-    uint8_t name[];
+    uint32_t header_id;
 };
 
 /* @Shahbaz: calculated fields algorithm to apply. */

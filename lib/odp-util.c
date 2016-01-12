@@ -124,6 +124,8 @@ odp_action_len(uint16_t type)
     case OVS_ACTION_ATTR_ADD_TO_FIELD: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_CALC_FIELDS_UPDATE: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY: return ATTR_LEN_VARIABLE;
+    case OVS_ACTION_ATTR_ADD_HEADER: return ATTR_LEN_VARIABLE;
+    case OVS_ACTION_ATTR_REMOVE_HEADER: return ATTR_LEN_VARIABLE;
     case OVS_ACTION_ATTR_DEPARSE: return 0;
 
     case OVS_ACTION_ATTR_UNSPEC:
@@ -769,6 +771,44 @@ format_odp_action(struct ds *ds, const struct nlattr *a)
         ds_put_cstr(ds, ")");
         break;
     
+	/* @Shahbaz: */
+	case OVS_ACTION_ATTR_ADD_HEADER: {
+		a = nl_attr_get(a);
+		enum ovs_key_attr key = nl_attr_type(a);
+		ds_put_cstr(ds, "add_header(");
+
+		switch (key) {
+		OVS_FORMAT_ODP_ACTION_ADD_REMOVE_HEADER_CASES /* @Shahbaz: */
+
+		case OVS_KEY_ATTR_UNSPEC:
+		case __OVS_KEY_ATTR_MAX:
+		default:
+			OVS_NOT_REACHED();
+		}
+
+		ds_put_cstr(ds, ")");
+		break;
+	}
+
+	/* @Shahbaz: */
+	case OVS_ACTION_ATTR_REMOVE_HEADER: {
+		a = nl_attr_get(a);
+		enum ovs_key_attr key = nl_attr_type(a);
+		ds_put_cstr(ds, "remove_header(");
+
+		switch (key) {
+		OVS_FORMAT_ODP_ACTION_ADD_REMOVE_HEADER_CASES /* @Shahbaz: */
+
+		case OVS_KEY_ATTR_UNSPEC:
+		case __OVS_KEY_ATTR_MAX:
+		default:
+			OVS_NOT_REACHED();
+		}
+
+		ds_put_cstr(ds, ")");
+		break;
+	}
+
     /* @Shahbaz: */
     case OVS_ACTION_ATTR_DEPARSE:
         ds_put_cstr(ds, "deparse");

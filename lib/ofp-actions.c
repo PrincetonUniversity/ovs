@@ -298,14 +298,18 @@ enum ofp_raw_action_type {
 
     /* NX1.0+(255): void. */
     NXAST_RAW_DEBUG_RECIRC,
+
+/* ## --------------- ## */
+/* ## Custom actions. ## */
+/* ## --------------- ## */
     
     /* OF1.5+(30): void. */
     OFPAT_RAW_DEPARSE,
     
-    /* OF1.5+(31): void. */
+    /* OF1.5+(31): uint32_t. */
     OFPAT_RAW_ADD_HEADER,
     
-    /* OF1.5+(32): void. */
+    /* OF1.5+(32): uint32_t. */
     OFPAT_RAW_REMOVE_HEADER,
     
     /* OF1.5+(33): void. */
@@ -834,8 +838,13 @@ format_DEPARSE(const struct ofpact_null *a OVS_UNUSED, struct ds *s)
  * TODO: add error checks.
  */
 static enum ofperr
-decode_OFPAT_RAW_ADD_HEADER(struct ofpbuf *ofpacts OVS_UNUSED)
+decode_OFPAT_RAW_ADD_HEADER(uint32_t header_id, struct ofpbuf *out)
 {
+	struct ofpact_add_header *ah;
+
+	ah = ofpact_put_ADD_HEADER(out);
+	ah->header_id = header_id;
+
     return 0;
 }
 
@@ -844,7 +853,7 @@ encode_ADD_HEADER(const struct ofpact_add_header *ah,
                   enum ofp_version ofp_version, struct ofpbuf *out)
 {
     if (ofp_version >= OFP15_VERSION) {
-        OVS_ENCODE_ADD_HEADER_CHECKS
+    	put_OFPAT_ADD_HEADER(out, ah->header_id);
     }
 }
 
@@ -852,20 +861,20 @@ static char * OVS_WARN_UNUSED_RESULT
 parse_ADD_HEADER(char *arg, struct ofpbuf *ofpacts,
                    enum ofputil_protocol *usable_protocols OVS_UNUSED)
 {
-    struct ofpact_add_header *ah;
-    
-    ah = ofpact_put_ADD_HEADER(ofpacts);
-    ah->n_bytes = strlen(arg);
-    ofpbuf_put(ofpacts, arg, ah->n_bytes);
-    
-    ofpact_update_len(ofpacts, &ah->ofpact);
+	OVS_PARSE_ADD_HEADER_CHECKS
     return NULL;
 }
 
 static void
-format_ADD_HEADER(const struct ofpact_add_header *ah OVS_UNUSED, 
-                    struct ds *s OVS_UNUSED)
+format_ADD_HEADER(const struct ofpact_add_header *ah, struct ds *s)
 {
+	switch((enum mf_field_id)ah->header_id) {
+	OVS_FORMAT_ADD_HEADER_CASES
+
+	case MFF_N_IDS:
+	default:
+		OVS_NOT_REACHED();
+	}
     return;
 }
 
@@ -873,39 +882,44 @@ format_ADD_HEADER(const struct ofpact_add_header *ah OVS_UNUSED,
  * TODO: add error checks.
  */
 static enum ofperr
-decode_OFPAT_RAW_REMOVE_HEADER(struct ofpbuf *ofpacts OVS_UNUSED)
+decode_OFPAT_RAW_REMOVE_HEADER(uint32_t header_id, struct ofpbuf *out)
 {
-    return 0;
+	struct ofpact_remove_header *rh;
+
+	rh = ofpact_put_REMOVE_HEADER(out);
+	rh->header_id = header_id;
+
+	return 0;
 }
 
 static void
 encode_REMOVE_HEADER(const struct ofpact_remove_header *rh,
                      enum ofp_version ofp_version, struct ofpbuf *out)
 {
-    if (ofp_version >= OFP15_VERSION) {
-        OVS_ENCODE_REMOVE_HEADER_CHECKS
-    }
+	if (ofp_version >= OFP15_VERSION) {
+		put_OFPAT_REMOVE_HEADER(out, rh->header_id);
+	}
 }
 
 static char * OVS_WARN_UNUSED_RESULT
 parse_REMOVE_HEADER(char *arg, struct ofpbuf *ofpacts,
                     enum ofputil_protocol *usable_protocols OVS_UNUSED)
 {
-    struct ofpact_remove_header *rh;
-    
-    rh = ofpact_put_REMOVE_HEADER(ofpacts);
-    rh->n_bytes = strlen(arg);
-    ofpbuf_put(ofpacts, arg, rh->n_bytes);
-    
-    ofpact_update_len(ofpacts, &rh->ofpact);
-    return NULL;
+	OVS_PARSE_REMOVE_HEADER_CHECKS
+	return NULL;
 }
 
 static void
-format_REMOVE_HEADER(const struct ofpact_remove_header *rh OVS_UNUSED, 
-                        struct ds *s OVS_UNUSED)
+format_REMOVE_HEADER(const struct ofpact_remove_header *rh, struct ds *s)
 {   
-    return;
+	switch((enum mf_field_id)rh->header_id) {
+	OVS_FORMAT_REMOVE_HEADER_CASES
+
+	case MFF_N_IDS:
+	default:
+		OVS_NOT_REACHED();
+	}
+	return;
 }
 
 /* @Shahbaz: */

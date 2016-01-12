@@ -609,6 +609,70 @@ odp_execute_add_to_field(struct dp_packet *packet,
     }
 }
 
+/* @Shahbaz: */
+static void
+odp_execute_add_header(struct dp_packet *packet,
+					   const struct nlattr *a)
+{
+	enum ovs_key_attr key = nl_attr_type(a);
+    char *data = dp_packet_data(packet);
+
+    /* get header offset */
+	uint16_t header_ofs = 0;
+    uint16_t header_size = 0;
+
+    OVS_ODP_EXECUTE_ADD_HEADER_GET_OFS /* @Shahbaz: */
+
+	OVS_NOT_REACHED();
+
+	/* push header */
+push:
+	if (dp_packet_get_allocated(packet) >= (dp_packet_size(packet) + header_size)) {
+		memmove(data + header_ofs + header_size, data + header_ofs, dp_packet_size(packet) - header_ofs);
+		dp_packet_set_size(packet, dp_packet_size(packet) + header_size);
+	}
+	else { /* error */
+		OVS_NOT_REACHED();
+	}
+
+	header_ofs = 0;
+
+	/* set header offsets */
+	OVS_ODP_EXECUTE_ADD_REMOVE_HEADER_SET_OFS /* @Shahbaz: */
+}
+
+/* @Shahbaz: */
+static void
+odp_execute_remove_header(struct dp_packet *packet,
+					      const struct nlattr *a)
+{
+	enum ovs_key_attr key = nl_attr_type(a);
+    char *data = dp_packet_data(packet);
+
+    /* get header offset */
+	uint16_t header_ofs = 0;
+    uint16_t header_size = 0;
+
+    OVS_ODP_EXECUTE_REMOVE_HEADER_GET_OFS /* @Shahbaz: */
+
+	OVS_NOT_REACHED();
+
+	/* push header */
+pop:
+	if (dp_packet_get_allocated(packet) >= (dp_packet_size(packet) - header_size)) {
+		memmove(data + header_ofs, data + header_ofs + header_size, dp_packet_size(packet) - header_ofs - header_size);
+		dp_packet_set_size(packet, dp_packet_size(packet) - header_size);
+	}
+	else { /* error */
+		OVS_NOT_REACHED();
+	}
+
+	header_ofs = 0;
+
+	/* set header offsets */
+	OVS_ODP_EXECUTE_ADD_REMOVE_HEADER_SET_OFS /* @Shahbaz: */
+}
+
 static bool
 requires_datapath_assistance(const struct nlattr *a)
 {
@@ -640,6 +704,8 @@ requires_datapath_assistance(const struct nlattr *a)
     case OVS_ACTION_ATTR_ADD_TO_FIELD:
     case OVS_ACTION_ATTR_CALC_FIELDS_UPDATE:
     case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY:
+    case OVS_ACTION_ATTR_ADD_HEADER:
+    case OVS_ACTION_ATTR_REMOVE_HEADER:
     case OVS_ACTION_ATTR_DEPARSE:
         return false;
 
@@ -786,6 +852,21 @@ odp_execute_actions(void *dp, struct dp_packet **packets, int cnt, bool steal,
             }
             break;
         }
+
+        /* @Shahbaz: */
+        case OVS_ACTION_ATTR_ADD_HEADER: {
+        	for (i = 0; i < cnt; i++) {
+				odp_execute_add_header(packets[i], nl_attr_get(a));
+			}
+			break;
+        }
+
+        case OVS_ACTION_ATTR_REMOVE_HEADER: {
+        	for (i = 0; i < cnt; i++) {
+				odp_execute_remove_header(packets[i], nl_attr_get(a));
+			}
+			break;
+		}
                     
         /* @Shahbaz: */
         case OVS_ACTION_ATTR_CALC_FIELDS_VERIFY: {

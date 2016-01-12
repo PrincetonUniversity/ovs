@@ -4395,6 +4395,54 @@ compose_add_to_field(struct xlate_ctx *ctx,
 
 /* @Shahbaz: */
 static void
+compose_add_header(struct xlate_ctx *ctx,
+                   const struct ofpact_add_header *add_header)
+{
+	bool use_masked = ctx->xbridge->support.masked_set_action;
+	ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow,
+									  ctx->odp_actions, ctx->wc,
+									  use_masked);
+
+	size_t offset = nl_msg_start_nested(ctx->odp_actions,
+	                                    OVS_ACTION_ATTR_ADD_HEADER);
+
+	switch ((enum mf_field_id)add_header->header_id) {
+	OVS_COMPOSE_ADD_REMOVE_HEADER_CASES /* @Shahbaz: */
+
+	case MFF_N_IDS:
+	default:
+		OVS_NOT_REACHED();
+	}
+
+	nl_msg_end_nested(ctx->odp_actions, offset);
+}
+
+/* @Shahbaz: */
+static void
+compose_remove_header(struct xlate_ctx *ctx,
+                      const struct ofpact_remove_header *remove_header)
+{
+	bool use_masked = ctx->xbridge->support.masked_set_action;
+	ctx->xout->slow |= commit_odp_actions(&ctx->xin->flow, &ctx->base_flow,
+									  ctx->odp_actions, ctx->wc,
+									  use_masked);
+
+	size_t offset = nl_msg_start_nested(ctx->odp_actions,
+	                                    OVS_ACTION_ATTR_REMOVE_HEADER);
+
+	switch ((enum mf_field_id)remove_header->header_id) {
+	OVS_COMPOSE_ADD_REMOVE_HEADER_CASES /* @Shahbaz: */
+
+	case MFF_N_IDS:
+	default:
+		OVS_NOT_REACHED();
+	}
+
+	nl_msg_end_nested(ctx->odp_actions, offset);
+}
+
+/* @Shahbaz: */
+static void
 compose_deparse(struct xlate_ctx *ctx)
 {
     bool use_masked = ctx->xbridge->support.masked_set_action;
@@ -4808,13 +4856,27 @@ do_xlate_actions(const struct ofpact *ofpacts, size_t ofpacts_len,
             compose_calc_fields_verify(ctx, calc_fields);
             break;
         }
-                    
+
+        /* @Shahbaz: */
+        case OFPACT_ADD_HEADER: {
+        	const struct ofpact_add_header *add_header;
+        	add_header = ofpact_get_ADD_HEADER(a);
+        	compose_add_header(ctx, add_header);
+        	break;
+        }
+
+        /* @Shahbaz: */
+        case OFPACT_REMOVE_HEADER:{
+        	const struct ofpact_remove_header *remove_header;
+        	remove_header = ofpact_get_REMOVE_HEADER(a);
+        	compose_remove_header(ctx, remove_header);
+        	break;
+        }
+
         /* @Shahbaz: */
         case OFPACT_MODIFY_FIELD:
-        case OFPACT_REMOVE_HEADER:
-        case OFPACT_ADD_HEADER:
-            break;
-        
+        	break;
+
         /* @Shahbaz: */
         case OFPACT_DEPARSE:
             compose_deparse(ctx);

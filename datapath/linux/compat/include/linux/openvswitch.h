@@ -717,12 +717,14 @@ enum ovs_action_attr {
 	OVS_ACTION_ATTR_TUNNEL_PUSH,   /* struct ovs_action_push_tnl*/
 	OVS_ACTION_ATTR_TUNNEL_POP,    /* u32 port number. */
 	OVS_ACTION_ATTRS               /* @Shahbaz: */
-        /* @Shahbaz: */
-        OVS_ACTION_ATTR_CALC_FIELDS_UPDATE,
-        OVS_ACTION_ATTR_CALC_FIELDS_VERIFY,
-        OVS_ACTION_ATTR_SUB_FROM_FIELD,
-        OVS_ACTION_ATTR_ADD_TO_FIELD,
-        OVS_ACTION_ATTR_DEPARSE,
+	/* @Shahbaz: */
+	OVS_ACTION_ATTR_CALC_FIELDS_UPDATE,
+	OVS_ACTION_ATTR_CALC_FIELDS_VERIFY,
+	OVS_ACTION_ATTR_SUB_FROM_FIELD,
+	OVS_ACTION_ATTR_ADD_TO_FIELD,
+	OVS_ACTION_ATTR_ADD_HEADER,
+	OVS_ACTION_ATTR_REMOVE_HEADER,
+	OVS_ACTION_ATTR_DEPARSE,
 #endif
 	__OVS_ACTION_ATTR_MAX,	      /* Nothing past this will be accepted
 				       * from userspace. */
