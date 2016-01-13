@@ -5021,7 +5021,7 @@ xlate_wc_init(struct xlate_ctx *ctx)
 
     /* Some fields we consider to always be examined. */
     WC_MASK_FIELD(ctx->wc, in_port);
-    WC_MASK_FIELD(ctx->wc, dl_type);
+//    WC_MASK_FIELD(ctx->wc, dl_type);
     if (is_ip_any(&ctx->xin->flow)) {
         WC_MASK_FIELD_MASK(ctx->wc, nw_frag, FLOW_NW_FRAG_MASK);
     }
