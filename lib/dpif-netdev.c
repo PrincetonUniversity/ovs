@@ -1732,54 +1732,10 @@ netdev_flow_key_init_masked(struct netdev_flow_key *dst,
                             (dst_u64 - miniflow_get_values(&dst->mf)) * 8);
 }
 
-//static inline bool
-//mf_get_next_in_map__(struct mf_for_each_in_map_aux *aux,
-//                   uint64_t *value)
-//{
-//	cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES_1);
-//    map_t *map, *fmap;
-//    map_t rm1bit;
-//
-//    while (OVS_UNLIKELY(!*(map = &aux->map.bits[aux->unit]))) {
-//        /* Skip remaining data in the previous unit. */
-//        aux->values += count_1bits(aux->fmap.bits[aux->unit]);
-//        if (++aux->unit == FLOWMAP_UNITS) {
-//        	cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES_1);
-//            return false;
-//        }
-//    }
-//
-//    rm1bit = rightmost_1bit(*map);
-//    *map -= rm1bit;
-//    fmap = &aux->fmap.bits[aux->unit];
-//
-//    if (OVS_LIKELY(*fmap & rm1bit)) {
-//        map_t trash = *fmap & (rm1bit - 1);
-//
-//        *fmap -= trash;
-//        /* count_1bits() is fast for systems where speed matters (e.g.,
-//         * DPDK), so we don't try avoid using it.
-//         * Advance 'aux->values' to point to the value for 'rm1bit'. */
-//        aux->values += count_1bits(trash);
-//
-//        *value = *aux->values;
-//    } else {
-//        *value = 0;
-//    }
-//    cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES_1);
-//    return true;
-//}
-//
-///* Iterate through miniflow u64 values specified by 'FLOWMAP'. */
-//#define MINIFLOW_FOR_EACH_IN_FLOWMAP__(VALUE, FLOW, FLOWMAP)          \
-//    for (struct mf_for_each_in_map_aux aux__ =                      \
-//        { 0, (FLOW)->map, (FLOWMAP), miniflow_get_values(FLOW) };   \
-//         mf_get_next_in_map__(&aux__, &(VALUE));)
-//
-///* Iterate through netdev_flow_key TNL u64 values specified by 'FLOWMAP'. */
-//#define NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(VALUE, KEY, FLOWMAP)   \
-//    MINIFLOW_FOR_EACH_IN_FLOWMAP__(VALUE, &(KEY)->mf, FLOWMAP)
-//
+/* Iterate through netdev_flow_key TNL u64 values specified by 'FLOWMAP'. */
+#define NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(VALUE, KEY, FLOWMAP)   \
+    MINIFLOW_FOR_EACH_IN_FLOWMAP(VALUE, &(KEY)->mf, FLOWMAP)
+
 ///* Returns a hash value for the bits of 'key' where there are 1-bits in
 // * 'mask'. */
 //static inline uint32_t
@@ -2640,11 +2596,11 @@ mf_get_next_in_map__(struct mf_for_each_in_map_aux *aux,
                    uint64_t *value,
 				   struct dp_netdev_pmd_thread *pmd)
 {
-	cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES_1);
-    map_t *map, *fmap;
+	map_t *map, *fmap;
     map_t rm1bit;
 
-    while (OVS_UNLIKELY(!*(map = &aux->map.bits[aux->unit]))) {
+    cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES_1);
+	while (OVS_UNLIKELY(!*(map = &aux->map.bits[aux->unit]))) {
         /* Skip remaining data in the previous unit. */
         aux->values += count_1bits(aux->fmap.bits[aux->unit]);
         if (++aux->unit == FLOWMAP_UNITS) {
@@ -2681,7 +2637,7 @@ mf_get_next_in_map__(struct mf_for_each_in_map_aux *aux,
          mf_get_next_in_map__(&aux__, &(VALUE), PMD);)
 
 /* Iterate through netdev_flow_key TNL u64 values specified by 'FLOWMAP'. */
-#define NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(VALUE, KEY, FLOWMAP, PMD)   \
+#define NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP__(VALUE, KEY, FLOWMAP, PMD)   \
     MINIFLOW_FOR_EACH_IN_FLOWMAP__(VALUE, &(KEY)->mf, FLOWMAP, PMD)
 
 /* Returns a hash value for the bits of 'key' where there are 1-bits in
@@ -2695,7 +2651,7 @@ netdev_flow_key_hash_in_mask(const struct netdev_flow_key *key,
     uint32_t hash = 0;
     uint64_t value;
 
-    NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(value, key, mask->mf.map, pmd) {
+    NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP__(value, key, mask->mf.map, pmd) {
         hash = hash_add64(hash, value & *p++);
     }
 
@@ -4161,7 +4117,7 @@ dpcls_rule_matches_key(const struct dpcls_rule *rule,
     const uint64_t *maskp = miniflow_get_values(&rule->mask->mf);
     uint64_t value;
 
-    NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(value, target, rule->flow.mf.map, pmd) {
+    NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(value, target, rule->flow.mf.map) {
         if (OVS_UNLIKELY((value & *maskp++) != *keyp++)) {
             return false;
         }
@@ -4223,12 +4179,12 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
             }
 
             /* Compute hashes for the remaining keys. */
+            cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES);
             ULLONG_FOR_EACH_1(i, map) {
-            	cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES);
-                hashes[i] = netdev_flow_key_hash_in_mask(&mkeys[i],
+            	hashes[i] = netdev_flow_key_hash_in_mask(&mkeys[i],
                                                          &subtable->mask, pmd);
-                cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES);
             }
+            cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES);
             /* Lookup. */
             cycles_count_start(pmd, PMD_CYCLES_DPCLS_CMAP_FIND);
             map = cmap_find_batch(&subtable->rules, map, hashes, nodes);
