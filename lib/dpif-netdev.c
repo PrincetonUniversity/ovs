@@ -2599,16 +2599,16 @@ mf_get_next_in_map__(struct mf_for_each_in_map_aux *aux,
 	map_t *map, *fmap;
     map_t rm1bit;
 
-    cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES_1);
-	while (OVS_UNLIKELY(!*(map = &aux->map.bits[aux->unit]))) {
+    while (OVS_UNLIKELY(!*(map = &aux->map.bits[aux->unit]))) {
         /* Skip remaining data in the previous unit. */
         aux->values += count_1bits(aux->fmap.bits[aux->unit]);
         if (++aux->unit == FLOWMAP_UNITS) {
-        	cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES_1);
+//        	cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES_1);
             return false;
         }
     }
 
+    cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES_1);
     rm1bit = rightmost_1bit(*map);
     *map -= rm1bit;
     fmap = &aux->fmap.bits[aux->unit];
