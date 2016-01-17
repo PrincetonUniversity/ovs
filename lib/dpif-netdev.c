@@ -169,9 +169,10 @@ static void dpcls_destroy(struct dpcls *);
 static void dpcls_insert(struct dpcls *, struct dpcls_rule *,
                          const struct netdev_flow_key *mask);
 static void dpcls_remove(struct dpcls *, struct dpcls_rule *);
-static bool dpcls_lookup(const struct dpcls *cls,
-                         const struct netdev_flow_key keys[],
-                         struct dpcls_rule **rules, size_t cnt);
+//static bool dpcls_lookup(const struct dpcls *cls,
+//                         const struct netdev_flow_key keys[],
+//                         struct dpcls_rule **rules, size_t cnt,
+//						 struct dp_netdev_pmd_thread *pmd);
 
 /* Datapath based on the network device interface from netdev.h.
  *
@@ -250,6 +251,11 @@ enum pmd_cycles_counter_type {
 	PMD_CYCLES_EMC_LOOKUP,
 	PMD_CYCLES_MEGAFLOW,
 	PMD_CYCLES_SP_PROCESSING,
+	PMD_CYCLES_DPCLS_OUTER_LOOP,
+	PMD_CYCLES_DPCLS_INNER_LOOP,
+	PMD_CYCLES_DPCLS_HASHES,
+	PMD_CYCLES_DPCLS_CMAP_FIND,
+	PMD_CYCLES_DPCLS_MATCHES,
 	PMD_CYCLES_DP_ACTIONS,      /* Cycles spent in datapath actions */
     PMD_N_CYCLES
 };
@@ -446,6 +452,11 @@ struct dp_netdev_pmd_thread {
     unsigned long long stats_zero[DP_N_STATS];
     uint64_t cycles_zero[PMD_N_CYCLES];
 };
+
+static bool dpcls_lookup(const struct dpcls *cls,
+                         const struct netdev_flow_key keys[],
+                         struct dpcls_rule **rules, size_t cnt,
+						 struct dp_netdev_pmd_thread *pmd);
 
 #define PMD_INITIAL_SEQ 1
 
@@ -686,6 +697,32 @@ pmd_info_show_stats(struct ds *reply,
                                      "%.02f (%"PRIu64"/%llu)\n",
                                      cycles[PMD_CYCLES_SP_PROCESSING] / (double)stats[DP_STAT_MISS],
                                      cycles[PMD_CYCLES_SP_PROCESSING], stats[DP_STAT_MISS]);
+
+    ds_put_format(reply,
+                                  "\tavg dpcls outer loop cycles per packet: "
+                                  "%.02f (%"PRIu64"/%llu)\n",
+                                  cycles[PMD_CYCLES_DPCLS_OUTER_LOOP] / (double)total_packets,
+                                  cycles[PMD_CYCLES_DPCLS_OUTER_LOOP], total_packets);
+        ds_put_format(reply,
+                                      "\tavg dpcls inner loop cycles per packet: "
+                                      "%.02f (%"PRIu64"/%llu)\n",
+                                      cycles[PMD_CYCLES_DPCLS_INNER_LOOP] / (double)total_packets,
+                                      cycles[PMD_CYCLES_DPCLS_INNER_LOOP], total_packets);
+        ds_put_format(reply,
+                                          "\tavg dpcls hashes cycles per packet: "
+                                          "%.02f (%"PRIu64"/%llu)\n",
+                                          cycles[PMD_CYCLES_DPCLS_HASHES] / (double)total_packets,
+                                          cycles[PMD_CYCLES_DPCLS_HASHES], total_packets);
+        ds_put_format(reply,
+                                              "\tavg dpcls cmap find cycles per packet: "
+                                              "%.02f (%"PRIu64"/%llu)\n",
+                                              cycles[PMD_CYCLES_DPCLS_CMAP_FIND] / (double)total_packets,
+                                              cycles[PMD_CYCLES_DPCLS_CMAP_FIND], total_packets);
+        ds_put_format(reply,
+                                                  "\tavg dpcls matches cycles per packet: "
+                                                  "%.02f (%"PRIu64"/%llu)\n",
+                                                  cycles[PMD_CYCLES_DPCLS_MATCHES] / (double)total_packets,
+                                                  cycles[PMD_CYCLES_DPCLS_MATCHES], total_packets);
 }
 
 static void
@@ -1697,11 +1734,13 @@ netdev_flow_key_init_masked(struct netdev_flow_key *dst,
  * 'mask'. */
 static inline uint32_t
 netdev_flow_key_hash_in_mask(const struct netdev_flow_key *key,
-                             const struct netdev_flow_key *mask)
+                             const struct netdev_flow_key *mask,
+							 struct dp_netdev_pmd_thread *pmd)
 {
     const uint64_t *p = miniflow_get_values(&mask->mf);
     uint32_t hash = 0;
     uint64_t value;
+
 
     NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(value, key, mask->mf.map) {
         hash = hash_add64(hash, value & *p++);
@@ -1799,7 +1838,7 @@ dp_netdev_pmd_lookup_flow(const struct dp_netdev_pmd_thread *pmd,
     struct dp_netdev_flow *netdev_flow;
     struct dpcls_rule *rule;
 
-    dpcls_lookup(&pmd->cls, key, &rule, 1);
+    dpcls_lookup(&pmd->cls, key, &rule, 1, pmd);
     netdev_flow = dp_netdev_flow_cast(rule);
 
     return netdev_flow;
@@ -3322,7 +3361,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
         keys[i].len = netdev_flow_key_size(miniflow_n_values(&keys[i].mf));
     }
     cycles_count_start(pmd, PMD_CYCLES_MEGAFLOW);
-    any_miss = !dpcls_lookup(&pmd->cls, keys, rules, cnt);
+    any_miss = !dpcls_lookup(&pmd->cls, keys, rules, cnt, pmd);
     cycles_count_end(pmd, PMD_CYCLES_MEGAFLOW);
     if (OVS_UNLIKELY(any_miss) && !fat_rwlock_tryrdlock(&dp->upcall_rwlock)) {
     	cycles_count_start(pmd, PMD_CYCLES_SP_PROCESSING);
@@ -3998,8 +4037,10 @@ dpcls_remove(struct dpcls *cls, struct dpcls_rule *rule)
  * in 'mask' the values in 'key' and 'target' are the same. */
 static inline bool
 dpcls_rule_matches_key(const struct dpcls_rule *rule,
-                       const struct netdev_flow_key *target)
+                       const struct netdev_flow_key *target,
+					   const struct dp_netdev_pmd_thread *pmd)
 {
+	cycles_count_start(pmd, PMD_CYCLES_DPCLS_MATCHES);
     const uint64_t *keyp = miniflow_get_values(&rule->flow.mf);
     const uint64_t *maskp = miniflow_get_values(&rule->mask->mf);
     uint64_t value;
@@ -4009,6 +4050,7 @@ dpcls_rule_matches_key(const struct dpcls_rule *rule,
             return false;
         }
     }
+    cycles_count_end(pmd, PMD_CYCLES_DPCLS_MATCHES);
     return true;
 }
 
@@ -4024,7 +4066,7 @@ dpcls_rule_matches_key(const struct dpcls_rule *rule,
  * Returns true if all flows found a corresponding rule. */
 static bool
 dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
-             struct dpcls_rule **rules, const size_t cnt)
+             struct dpcls_rule **rules, const size_t cnt, struct dp_netdev_pmd_thread *pmd)
 {
     /* The batch size 16 was experimentally found faster than 8 or 32. */
     typedef uint16_t map_type;
@@ -4044,6 +4086,7 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
     }
     memset(rules, 0, cnt * sizeof *rules);
 
+    cycles_count_start(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
     PVECTOR_FOR_EACH (subtable, &cls->subtables) {
         const struct netdev_flow_key *mkeys = keys;
         struct dpcls_rule **mrules = rules;
@@ -4052,6 +4095,7 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
 
         BUILD_ASSERT_DECL(sizeof remains == sizeof *maps);
 
+        cycles_count_start(pmd, PMD_CYCLES_DPCLS_INNER_LOOP);
         for (m = 0; m < N_MAPS; m++, mkeys += MAP_BITS, mrules += MAP_BITS) {
             uint32_t hashes[MAP_BITS];
             const struct cmap_node *nodes[MAP_BITS];
@@ -4064,17 +4108,21 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
 
             /* Compute hashes for the remaining keys. */
             ULLONG_FOR_EACH_1(i, map) {
+            	cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES);
                 hashes[i] = netdev_flow_key_hash_in_mask(&mkeys[i],
-                                                         &subtable->mask);
+                                                         &subtable->mask, pmd);
+                cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES);
             }
             /* Lookup. */
+            cycles_count_start(pmd, PMD_CYCLES_DPCLS_CMAP_FIND);
             map = cmap_find_batch(&subtable->rules, map, hashes, nodes);
+            cycles_count_end(pmd, PMD_CYCLES_DPCLS_CMAP_FIND);
             /* Check results. */
             ULLONG_FOR_EACH_1(i, map) {
                 struct dpcls_rule *rule;
 
                 CMAP_NODE_FOR_EACH (rule, cmap_node, nodes[i]) {
-                    if (OVS_LIKELY(dpcls_rule_matches_key(rule, &mkeys[i]))) {
+                    if (OVS_LIKELY(dpcls_rule_matches_key(rule, &mkeys[i], pmd))) {
                         mrules[i] = rule;
                         goto next;
                     }
@@ -4086,9 +4134,12 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
             maps[m] &= ~map;          /* Clear the found rules. */
             remains |= maps[m];
         }
+        cycles_count_end(pmd, PMD_CYCLES_DPCLS_INNER_LOOP);
         if (!remains) {
+        	cycles_count_end(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
             return true;              /* All found. */
         }
     }
+    cycles_count_end(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
     return false;                     /* Some misses. */
 }
