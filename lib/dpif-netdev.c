@@ -2593,7 +2593,7 @@ mf_get_next_in_map__(struct mf_for_each_in_map_aux *aux,
                    uint64_t *value,
 				   struct dp_netdev_pmd_thread *pmd)
 {
-	cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES_1);
+//	cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES_1);
     map_t *map, *fmap;
     map_t rm1bit;
 
@@ -2601,7 +2601,7 @@ mf_get_next_in_map__(struct mf_for_each_in_map_aux *aux,
         /* Skip remaining data in the previous unit. */
         aux->values += count_1bits(aux->fmap.bits[aux->unit]);
         if (++aux->unit == FLOWMAP_UNITS) {
-        	cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES_1);
+//        	cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES_1);
             return false;
         }
     }
@@ -2623,7 +2623,7 @@ mf_get_next_in_map__(struct mf_for_each_in_map_aux *aux,
     } else {
         *value = 0;
     }
-    cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES_1);
+//    cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES_1);
     return true;
 }
 
@@ -4143,7 +4143,7 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
     }
     memset(rules, 0, cnt * sizeof *rules);
 
-    cycles_count_start(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
+//    cycles_count_start(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
     PVECTOR_FOR_EACH (subtable, &cls->subtables) {
         const struct netdev_flow_key *mkeys = keys;
         struct dpcls_rule **mrules = rules;
@@ -4152,7 +4152,7 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
 
         BUILD_ASSERT_DECL(sizeof remains == sizeof *maps);
 
-        cycles_count_start(pmd, PMD_CYCLES_DPCLS_INNER_LOOP);
+//        cycles_count_start(pmd, PMD_CYCLES_DPCLS_INNER_LOOP);
         for (m = 0; m < N_MAPS; m++, mkeys += MAP_BITS, mrules += MAP_BITS) {
             uint32_t hashes[MAP_BITS];
             const struct cmap_node *nodes[MAP_BITS];
@@ -4192,12 +4192,12 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
             maps[m] &= ~map;          /* Clear the found rules. */
             remains |= maps[m];
         }
-        cycles_count_end(pmd, PMD_CYCLES_DPCLS_INNER_LOOP);
+//        cycles_count_end(pmd, PMD_CYCLES_DPCLS_INNER_LOOP);
         if (!remains) {
-        	cycles_count_end(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
+//        	cycles_count_end(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
             return true;              /* All found. */
         }
     }
-    cycles_count_end(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
+//    cycles_count_end(pmd, PMD_CYCLES_DPCLS_OUTER_LOOP);
     return false;                     /* Some misses. */
 }
