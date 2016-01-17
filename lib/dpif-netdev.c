@@ -1730,10 +1730,10 @@ netdev_flow_key_init_masked(struct netdev_flow_key *dst,
                             (dst_u64 - miniflow_get_values(&dst->mf)) * 8);
 }
 
-///* Iterate through netdev_flow_key TNL u64 values specified by 'FLOWMAP'. */
-//#define NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(VALUE, KEY, FLOWMAP)   \
-//    MINIFLOW_FOR_EACH_IN_FLOWMAP(VALUE, &(KEY)->mf, FLOWMAP)
-//
+/* Iterate through netdev_flow_key TNL u64 values specified by 'FLOWMAP'. */
+#define NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(VALUE, KEY, FLOWMAP)   \
+    MINIFLOW_FOR_EACH_IN_FLOWMAP(VALUE, &(KEY)->mf, FLOWMAP)
+
 ///* Returns a hash value for the bits of 'key' where there are 1-bits in
 // * 'mask'. */
 //static inline uint32_t
@@ -2634,7 +2634,7 @@ mf_get_next_in_map__(struct mf_for_each_in_map_aux *aux,
          mf_get_next_in_map__(&aux__, &(VALUE), PMD);)
 
 /* Iterate through netdev_flow_key TNL u64 values specified by 'FLOWMAP'. */
-#define NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(VALUE, KEY, FLOWMAP, PMD)   \
+#define NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP__(VALUE, KEY, FLOWMAP, PMD)   \
     MINIFLOW_FOR_EACH_IN_FLOWMAP__(VALUE, &(KEY)->mf, FLOWMAP, PMD)
 
 /* Returns a hash value for the bits of 'key' where there are 1-bits in
@@ -2648,7 +2648,7 @@ netdev_flow_key_hash_in_mask(const struct netdev_flow_key *key,
     uint32_t hash = 0;
     uint64_t value;
 
-    NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(value, key, mask->mf.map, pmd) {
+    NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP__(value, key, mask->mf.map, pmd) {
         hash = hash_add64(hash, value & *p++);
     }
 
@@ -4102,7 +4102,7 @@ dpcls_rule_matches_key(const struct dpcls_rule *rule,
     const uint64_t *maskp = miniflow_get_values(&rule->mask->mf);
     uint64_t value;
 
-    NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(value, target, rule->flow.mf.map, pmd) {
+    NETDEV_FLOW_KEY_FOR_EACH_IN_FLOWMAP(value, target, rule->flow.mf.map) {
         if (OVS_UNLIKELY((value & *maskp++) != *keyp++)) {
             return false;
         }
@@ -4164,12 +4164,12 @@ dpcls_lookup(const struct dpcls *cls, const struct netdev_flow_key keys[],
             }
 
             /* Compute hashes for the remaining keys. */
+            cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES);
             ULLONG_FOR_EACH_1(i, map) {
-            	cycles_count_start(pmd, PMD_CYCLES_DPCLS_HASHES);
-                hashes[i] = netdev_flow_key_hash_in_mask(&mkeys[i],
+            	hashes[i] = netdev_flow_key_hash_in_mask(&mkeys[i],
                                                          &subtable->mask, pmd);
-                cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES);
             }
+            cycles_count_end(pmd, PMD_CYCLES_DPCLS_HASHES);
 
             /* Lookup. */
             cycles_count_start(pmd, PMD_CYCLES_DPCLS_CMAP_FIND);
