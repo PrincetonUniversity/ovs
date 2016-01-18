@@ -1202,6 +1202,8 @@ void flow_wildcards_init_for_packet(struct flow_wildcards *wc,
     WC_MASK_FIELD(wc, dp_hash);
     WC_MASK_FIELD(wc, in_port);
 
+    OVS_FLOW_WC_MASK /* @Shahbaz: */
+
     /* actset_output wildcarded. */
 
     WC_MASK_FIELD(wc, dl_dst);
