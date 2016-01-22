@@ -458,7 +458,7 @@ miniflow_extract(struct dp_packet *packet, struct miniflow *dst)
     uint64_t *values = miniflow_values(dst);
     struct mf_ctx mf = { FLOWMAP_EMPTY_INITIALIZER, values,
                          values + FLOW_U64S };
-//    const char *l2;
+    const char *l2;
     // ovs_be16 dl_type;
     // uint8_t nw_frag, nw_tos, nw_ttl, nw_proto;
 
@@ -497,8 +497,8 @@ miniflow_extract(struct dp_packet *packet, struct miniflow *dst)
 //    }
 
     /* Initialize packet's layer pointer and offsets. */
-//    l2 = data;
-//    dp_packet_reset_offsets(packet);
+    l2 = data;
+    dp_packet_reset_offsets(packet);
 
     // /* Must have full Ethernet header to proceed. */
     // if (OVS_UNLIKELY(size < sizeof(struct eth_header))) {
@@ -772,9 +772,9 @@ miniflow_extract(struct dp_packet *packet, struct miniflow *dst)
     //         }
     //     }
     // }
-//    OVS_MINIFLOW_EXTRACT_METADATA_DEFS /* @Shahbaz: TODO: see if these can be
-//                                        * moved outside the extract function.*/
-//    OVS_MINIFLOW_EXTRACT /* @Shahbaz: */
+    OVS_MINIFLOW_EXTRACT_METADATA_DEFS /* @Shahbaz: TODO: see if these can be
+                                        * moved outside the extract function.*/
+    OVS_MINIFLOW_EXTRACT /* @Shahbaz: */
  out:
     dst->map = mf.map;
 }
