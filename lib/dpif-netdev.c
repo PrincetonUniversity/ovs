@@ -684,8 +684,8 @@ pmd_info_show_stats(struct ds *reply,
     ds_put_format(reply,
                                      "\tavg slowpath cycles per packet: "
                                      "%.02f (%"PRIu64"/%llu)\n",
-                                     cycles[PMD_CYCLES_SP_PROCESSING] / (double)stats[DP_STAT_MISS],
-                                     cycles[PMD_CYCLES_SP_PROCESSING], stats[DP_STAT_MISS]);
+                                     cycles[PMD_CYCLES_SP_PROCESSING] / (double)total_packets,
+                                     cycles[PMD_CYCLES_SP_PROCESSING], total_packets);
 }
 
 static void
@@ -3254,12 +3254,12 @@ emc_processing(struct dp_netdev_pmd_thread *pmd, struct dp_packet **packets,
                size_t cnt, struct netdev_flow_key *keys,
                struct packet_batch batches[], size_t *n_batches)
 {
-//    struct emc_cache *flow_cache = &pmd->flow_cache;
+    struct emc_cache *flow_cache = &pmd->flow_cache;
     struct netdev_flow_key key;
     size_t i, notfound_cnt = 0;
 
     for (i = 0; i < cnt; i++) {
-//        struct dp_netdev_flow *flow;
+        struct dp_netdev_flow *flow;
 
         if (OVS_UNLIKELY(dp_packet_size(packets[i]) < ETH_HEADER_LEN)) {
             dp_packet_delete(packets[i]);
@@ -3276,24 +3276,24 @@ emc_processing(struct dp_netdev_pmd_thread *pmd, struct dp_packet **packets,
         cycles_count_end(pmd, PMD_CYCLES_PARSING);
 
         key.len = 0; /* Not computed yet. */
-//        key.hash = dpif_netdev_packet_get_rss_hash(packets[i], &key.mf);
-//
-//        cycles_count_start(pmd, PMD_CYCLES_EMC_LOOKUP);
-//        flow = emc_lookup(flow_cache, &key);
-//        cycles_count_end(pmd, PMD_CYCLES_EMC_LOOKUP);
-//        if (OVS_LIKELY(flow)) {
-//            dp_netdev_queue_batches(packets[i], flow, &key.mf, batches,
-//                                    n_batches);
-//        } else {
-//            if (i != notfound_cnt) {
-//                dp_packet_swap(&packets[i], &packets[notfound_cnt]);
-//            }
+        key.hash = dpif_netdev_packet_get_rss_hash(packets[i], &key.mf);
+
+        cycles_count_start(pmd, PMD_CYCLES_EMC_LOOKUP);
+        flow = emc_lookup(flow_cache, &key);
+        cycles_count_end(pmd, PMD_CYCLES_EMC_LOOKUP);
+        if (OVS_LIKELY(flow)) {
+            dp_netdev_queue_batches(packets[i], flow, &key.mf, batches,
+                                    n_batches);
+        } else {
+            if (i != notfound_cnt) {
+                dp_packet_swap(&packets[i], &packets[notfound_cnt]);
+            }
 
             keys[notfound_cnt++] = key;
-//        }
+        }
     }
 
-//    dp_netdev_count_packet(pmd, DP_STAT_EXACT_HIT, cnt - notfound_cnt);
+    dp_netdev_count_packet(pmd, DP_STAT_EXACT_HIT, cnt - notfound_cnt);
 
     return notfound_cnt;
 }
@@ -3325,7 +3325,6 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
     any_miss = !dpcls_lookup(&pmd->cls, keys, rules, cnt);
     cycles_count_end(pmd, PMD_CYCLES_MEGAFLOW);
     if (OVS_UNLIKELY(any_miss) && !fat_rwlock_tryrdlock(&dp->upcall_rwlock)) {
-    	cycles_count_start(pmd, PMD_CYCLES_SP_PROCESSING);
     	uint64_t actions_stub[512 / 8], slow_stub[512 / 8];
         struct ofpbuf actions, put_actions;
         ovs_u128 ufid;
@@ -3360,9 +3359,11 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
             ofpbuf_clear(&put_actions);
 
             dpif_flow_hash(dp->dpif, &match.flow, sizeof match.flow, &ufid);
+            cycles_count_start(pmd, PMD_CYCLES_SP_PROCESSING);
             error = dp_netdev_upcall(pmd, packets[i], &match.flow, &match.wc,
                                      &ufid, DPIF_UC_MISS, NULL, &actions,
                                      &put_actions);
+            cycles_count_end(pmd, PMD_CYCLES_SP_PROCESSING);
             if (OVS_UNLIKELY(error && error != ENOSPC)) {
                 dp_packet_delete(packets[i]);
                 lost_cnt++;
@@ -3402,7 +3403,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
                 }
                 ovs_mutex_unlock(&pmd->flow_mutex);
 
-//                emc_insert(flow_cache, &keys[i], netdev_flow);
+                emc_insert(flow_cache, &keys[i], netdev_flow);
             }
         }
 
@@ -3410,7 +3411,6 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
         ofpbuf_uninit(&put_actions);
         fat_rwlock_unlock(&dp->upcall_rwlock);
         dp_netdev_count_packet(pmd, DP_STAT_LOST, lost_cnt);
-        cycles_count_end(pmd, PMD_CYCLES_SP_PROCESSING);
     } else if (OVS_UNLIKELY(any_miss)) {
         for (i = 0; i < cnt; i++) {
             if (OVS_UNLIKELY(!rules[i])) {
@@ -3431,7 +3431,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
 
         flow = dp_netdev_flow_cast(rules[i]);
 
-//        emc_insert(flow_cache, &keys[i], flow);
+        emc_insert(flow_cache, &keys[i], flow);
         dp_netdev_queue_batches(packet, flow, &keys[i].mf, batches, n_batches);
     }
 
@@ -3445,7 +3445,7 @@ dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
                 struct dp_packet **packets, int cnt)
 {
 	cycles_count_start(pmd, PMD_CYCLES_PROCESSING);
-	cycles_count_start(pmd, PMD_CYCLES_EMC_PROCESSING);
+//	cycles_count_start(pmd, PMD_CYCLES_EMC_PROCESSING);
 #if !defined(__CHECKER__) && !defined(_WIN32)
     const size_t PKT_ARRAY_SIZE = cnt;
 #else
@@ -3459,12 +3459,12 @@ dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
 
     n_batches = 0;
     newcnt = emc_processing(pmd, packets, cnt, keys, batches, &n_batches);
-    cycles_count_end(pmd, PMD_CYCLES_EMC_PROCESSING);
-    cycles_count_start(pmd, PMD_CYCLES_FP_PROCESSING);
+//    cycles_count_end(pmd, PMD_CYCLES_EMC_PROCESSING);
+//    cycles_count_start(pmd, PMD_CYCLES_FP_PROCESSING);
     if (OVS_UNLIKELY(newcnt)) {
         fast_path_processing(pmd, packets, newcnt, keys, batches, &n_batches);
     }
-    cycles_count_end(pmd, PMD_CYCLES_FP_PROCESSING);
+//    cycles_count_end(pmd, PMD_CYCLES_FP_PROCESSING);
 
     cycles_count_start(pmd, PMD_CYCLES_DP_ACTIONS);
     for (i = 0; i < n_batches; i++) {

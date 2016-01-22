@@ -485,16 +485,16 @@ miniflow_extract(struct dp_packet *packet, struct miniflow *dst)
 //            }
 //        }
 //    }
-    if (md->skb_priority || md->pkt_mark) {
-        miniflow_push_uint32(mf, skb_priority, md->skb_priority);
-        miniflow_push_uint32(mf, pkt_mark, md->pkt_mark);
-    }
+//    if (md->skb_priority || md->pkt_mark) {
+//        miniflow_push_uint32(mf, skb_priority, md->skb_priority);
+//        miniflow_push_uint32(mf, pkt_mark, md->pkt_mark);
+//    }
     miniflow_push_uint32(mf, dp_hash, md->dp_hash);
     miniflow_push_uint32(mf, in_port, odp_to_u32(md->in_port.odp_port));
-    if (md->recirc_id) {
-        miniflow_push_uint32(mf, recirc_id, md->recirc_id);
-        miniflow_pad_to_64(mf, conj_id);
-    }
+//    if (md->recirc_id) {
+//        miniflow_push_uint32(mf, recirc_id, md->recirc_id);
+//        miniflow_pad_to_64(mf, conj_id);
+//    }
 
     /* Initialize packet's layer pointer and offsets. */
     l2 = data;
