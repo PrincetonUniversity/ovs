@@ -108,6 +108,8 @@ struct flow {
     ofp_port_t actset_output;   /* Output port in action set. */
     uint8_t pad1[6];            /* Pad to 64 bits. */
 
+    OVS_FIELDS /* @Shahbaz: */
+
     /* L2, Order the same as in the Ethernet header! (64-bit aligned) */
     struct eth_addr dl_dst;     /* Ethernet destination address. */
     struct eth_addr dl_src;     /* Ethernet source address. */
@@ -136,7 +138,6 @@ struct flow {
     ovs_be16 tp_dst;            /* TCP/UDP/SCTP destination port. */
     ovs_be32 igmp_group_ip4;    /* IGMP group IPv4 address.
                                  * Keep last for BUILD_ASSERT_DECL below. */
-    OVS_FIELDS /* @Shahbaz: */
 };
 BUILD_ASSERT_DECL(sizeof(struct flow) % sizeof(uint64_t) == 0);
 BUILD_ASSERT_DECL(sizeof(struct flow_tnl) % sizeof(uint64_t) == 0);
@@ -155,9 +156,9 @@ BUILD_ASSERT_DECL(sizeof(struct flow_tnl) % sizeof(uint64_t) == 0);
                              )
 
 /* Remember to update FLOW_WC_SEQ when changing 'struct flow'. */
-BUILD_ASSERT_DECL(offsetof(struct flow, igmp_group_ip4) + sizeof(uint32_t)
-                  == sizeof(struct flow_tnl) + 192
-                  && FLOW_WC_SEQ == 33);
+//BUILD_ASSERT_DECL(offsetof(struct flow, igmp_group_ip4) + sizeof(uint32_t)
+//                  == sizeof(struct flow_tnl) + 192
+//                  && FLOW_WC_SEQ == 33);
 
 /* Incremental points at which flow classification may be performed in
  * segments.
