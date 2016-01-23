@@ -551,10 +551,10 @@ miniflow_extract(struct dp_packet *packet, struct miniflow *dst)
         nw_ttl = nh->ip_ttl;
         nw_proto = nh->ip_proto;
         if (OVS_UNLIKELY(IP_IS_FRAGMENT(nh->ip_frag_off))) {
-            nw_frag = FLOW_NW_FRAG_ANY;
-            if (nh->ip_frag_off & htons(IP_FRAG_OFF_MASK)) {
-                nw_frag |= FLOW_NW_FRAG_LATER;
-            }
+//            nw_frag = FLOW_NW_FRAG_ANY;
+//            if (nh->ip_frag_off & htons(IP_FRAG_OFF_MASK)) {
+//                nw_frag |= FLOW_NW_FRAG_LATER;
+//            }
         }
         data_pull(&data, &size, ip_len);
     } else if (dl_type == htons(ETH_TYPE_IPV6)) {

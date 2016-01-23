@@ -3532,7 +3532,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
                 }
                 ovs_mutex_unlock(&pmd->flow_mutex);
 
-                emc_insert(flow_cache, &keys[i], netdev_flow);
+//                emc_insert(flow_cache, &keys[i], netdev_flow);
             }
         }
 
@@ -3560,7 +3560,7 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
 
         flow = dp_netdev_flow_cast(rules[i]);
 
-        emc_insert(flow_cache, &keys[i], flow);
+//        emc_insert(flow_cache, &keys[i], flow);
         dp_netdev_queue_batches(packet, flow, &keys[i].mf, batches, n_batches);
     }
 
