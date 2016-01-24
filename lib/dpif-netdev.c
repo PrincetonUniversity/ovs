@@ -3597,6 +3597,10 @@ fast_path_processing(struct dp_netdev_pmd_thread *pmd,
     dp_netdev_count_packet(pmd, DP_STAT_LOST, lost_cnt);
 }
 
+enum { PKT_ARRAY_SIZE = NETDEV_MAX_BURST };
+struct netdev_flow_key keys[PKT_ARRAY_SIZE];
+struct packet_batch batches[PKT_ARRAY_SIZE];
+
 static void
 dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
                 struct dp_packet **packets, int cnt)
@@ -3604,21 +3608,21 @@ dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
 #ifdef PROFILE
 	cycles_count_start(pmd, PMD_CYCLES_PROCESSING);
 #endif
-//	cycles_count_start(pmd, PMD_CYCLES_EMC_PROCESSING);
-#if !defined(__CHECKER__) && !defined(_WIN32)
-    const size_t PKT_ARRAY_SIZE = cnt;
-#else
-    /* Sparse or MSVC doesn't like variable length array. */
-    enum { PKT_ARRAY_SIZE = NETDEV_MAX_BURST };
-#endif
-    struct netdev_flow_key keys[PKT_ARRAY_SIZE];
-    struct packet_batch batches[PKT_ARRAY_SIZE];
+//#if !defined(__CHECKER__) && !defined(_WIN32)
+//    const size_t PKT_ARRAY_SIZE = cnt;
+//#else
+//    /* Sparse or MSVC doesn't like variable length array. */
+//    enum { PKT_ARRAY_SIZE = NETDEV_MAX_BURST };
+//#endif
+//    struct netdev_flow_key keys[PKT_ARRAY_SIZE];
+//    struct packet_batch batches[PKT_ARRAY_SIZE];
     long long now = time_msec();
     size_t newcnt, n_batches, i;
 
     n_batches = 0;
+    cycles_count_start(pmd, PMD_CYCLES_EMC_PROCESSING);
     newcnt = emc_processing(pmd, packets, cnt, keys, batches, &n_batches);
-//    cycles_count_end(pmd, PMD_CYCLES_EMC_PROCESSING);
+    cycles_count_end(pmd, PMD_CYCLES_EMC_PROCESSING);
 //    cycles_count_start(pmd, PMD_CYCLES_FP_PROCESSING);
     if (OVS_UNLIKELY(newcnt)) {
         fast_path_processing(pmd, packets, newcnt, keys, batches, &n_batches);

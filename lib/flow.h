@@ -72,6 +72,185 @@ const char *flow_tun_flag_to_string(uint32_t flags);
 /* Maximum number of supported MPLS labels. */
 #define FLOW_MAX_MPLS_LABELS 3
 
+/* -- Called in include/openvswitch/types.h -- */
+#define OVS_FIELD_STRUCTS \
+    struct ethernet__dstAddr_t { \
+        uint8_t data[48/8]; \
+    }; \
+    struct ethernet__srcAddr_t { \
+        uint8_t data[48/8]; \
+    }; \
+    \
+
+OVS_FIELD_STRUCTS
+
+/* -- Called in lib/packets.h -- */
+#define _ETHERNET__HEADER_LEN 14
+#define _VLAN__HEADER_LEN 4
+#define _IPV4__HEADER_LEN 20
+#define _TCP__HEADER_LEN 20
+#define _UDP__HEADER_LEN 8
+#define _INTRINSIC_METADATA_HEADER_LEN 7
+#define _L4_METADATA__HEADER_LEN 4
+#define VALID_HEADER_LEN 5
+
+/* -- Called in lib/packets.h -- */
+#define OVS_HDR_STRUCTS \
+    OVS_PACKED( \
+    struct _ethernet__header { \
+        struct ethernet__dstAddr_t ethernet__dstAddr; \
+        struct ethernet__srcAddr_t ethernet__srcAddr; \
+        ovs_be16 ethernet__etherType; \
+    }); \
+    BUILD_ASSERT_DECL(_ETHERNET__HEADER_LEN == sizeof(struct _ethernet__header)); \
+    \
+    OVS_PACKED( \
+    struct _ethernet__padded_header { \
+        struct _ethernet__header hdr; \
+        uint8_t pad[2]; \
+    }); \
+    BUILD_ASSERT_DECL( \
+        _ETHERNET__HEADER_LEN+2 == sizeof(struct _ethernet__padded_header)); \
+    \
+    OVS_PACKED( \
+    struct _vlan__header { \
+        ovs_be16 vlan__pcp_cfi_vid; \
+        ovs_be16 vlan__etherType; \
+    }); \
+    BUILD_ASSERT_DECL(_VLAN__HEADER_LEN == sizeof(struct _vlan__header)); \
+    \
+    OVS_PACKED( \
+    struct _vlan__padded_header { \
+        struct _vlan__header hdr; \
+        uint8_t pad[4]; \
+    }); \
+    BUILD_ASSERT_DECL( \
+        _VLAN__HEADER_LEN+4 == sizeof(struct _vlan__padded_header)); \
+    \
+    OVS_PACKED( \
+    struct _ipv4__header { \
+        uint8_t ipv4__version_ihl; \
+        uint8_t ipv4__diffserv; \
+        ovs_be16 ipv4__totalLen; \
+        ovs_be16 ipv4__identification; \
+        ovs_be16 ipv4__flags_fragOffset; \
+        uint8_t ipv4__ttl; \
+        uint8_t ipv4__protocol; \
+        ovs_be16 ipv4__hdrChecksum; \
+        ovs_be32 ipv4__srcAddr; \
+        ovs_be32 ipv4__dstAddr; \
+    }); \
+    BUILD_ASSERT_DECL(_IPV4__HEADER_LEN == sizeof(struct _ipv4__header)); \
+    \
+    OVS_PACKED( \
+    struct _ipv4__padded_header { \
+        struct _ipv4__header hdr; \
+        uint8_t pad[4]; \
+    }); \
+    BUILD_ASSERT_DECL( \
+        _IPV4__HEADER_LEN+4 == sizeof(struct _ipv4__padded_header)); \
+    \
+    OVS_PACKED( \
+    struct _tcp__header { \
+        ovs_be16 tcp__srcPort; \
+        ovs_be16 tcp__dstPort; \
+        ovs_be32 tcp__seqNo; \
+        ovs_be32 tcp__ackNo; \
+        uint8_t tcp__dataOffset_res; \
+        uint8_t tcp__flags; \
+        ovs_be16 tcp__window; \
+        ovs_be16 tcp__checksum; \
+        ovs_be16 tcp__urgentPtr; \
+    }); \
+    BUILD_ASSERT_DECL(_TCP__HEADER_LEN == sizeof(struct _tcp__header)); \
+    \
+    OVS_PACKED( \
+    struct _tcp__padded_header { \
+        struct _tcp__header hdr; \
+        uint8_t pad[4]; \
+    }); \
+    BUILD_ASSERT_DECL( \
+        _TCP__HEADER_LEN+4 == sizeof(struct _tcp__padded_header)); \
+    \
+    OVS_PACKED( \
+    struct _udp__header { \
+        ovs_be16 udp__srcPort; \
+        ovs_be16 udp__dstPort; \
+        ovs_be16 udp__length_; \
+        ovs_be16 udp__checksum; \
+    }); \
+    BUILD_ASSERT_DECL(_UDP__HEADER_LEN == sizeof(struct _udp__header)); \
+    \
+    OVS_PACKED( \
+    struct _udp__padded_header { \
+        struct _udp__header hdr; \
+    }); \
+    BUILD_ASSERT_DECL( \
+        _UDP__HEADER_LEN+0 == sizeof(struct _udp__padded_header)); \
+    \
+    OVS_PACKED( \
+    struct _intrinsic_metadata_header { \
+        uint8_t intrinsic_metadata_mcast_grp_egress_rid; \
+        ovs_be16 intrinsic_metadata_mcast_hash; \
+        ovs_be32 intrinsic_metadata_lf_field_list; \
+    }); \
+    BUILD_ASSERT_DECL(_INTRINSIC_METADATA_HEADER_LEN == sizeof(struct _intrinsic_metadata_header)); \
+    \
+    OVS_PACKED( \
+    struct _intrinsic_metadata_padded_header { \
+        struct _intrinsic_metadata_header hdr; \
+        uint8_t pad[1]; \
+    }); \
+    BUILD_ASSERT_DECL( \
+        _INTRINSIC_METADATA_HEADER_LEN+1 == sizeof(struct _intrinsic_metadata_padded_header)); \
+    \
+    OVS_PACKED( \
+    struct _l4_metadata__header { \
+        ovs_be16 l4_metadata__srcPort; \
+        ovs_be16 l4_metadata__dstPort; \
+    }); \
+    BUILD_ASSERT_DECL(_L4_METADATA__HEADER_LEN == sizeof(struct _l4_metadata__header)); \
+    \
+    OVS_PACKED( \
+    struct _l4_metadata__padded_header { \
+        struct _l4_metadata__header hdr; \
+        uint8_t pad[4]; \
+    }); \
+    BUILD_ASSERT_DECL( \
+        _L4_METADATA__HEADER_LEN+4 == sizeof(struct _l4_metadata__padded_header)); \
+    \
+    OVS_PACKED( \
+    struct valid_header { \
+        uint8_t _ethernet__valid; \
+        uint8_t _vlan__valid; \
+        uint8_t _ipv4__valid; \
+        uint8_t _tcp__valid; \
+        uint8_t _udp__valid; \
+    }); \
+    BUILD_ASSERT_DECL(VALID_HEADER_LEN == sizeof(struct valid_header)); \
+    \
+    OVS_PACKED( \
+    struct valid_padded_header { \
+        struct valid_header hdr; \
+        uint8_t pad[3]; \
+    }); \
+    BUILD_ASSERT_DECL( \
+        VALID_HEADER_LEN+3 == sizeof(struct valid_padded_header)); \
+    \
+
+OVS_HDR_STRUCTS
+
+#define OVS_FIELDS \
+    struct _ethernet__padded_header _ethernet_; \
+    struct _vlan__padded_header _vlan_; \
+    struct _ipv4__padded_header _ipv4_; \
+    struct _tcp__padded_header _tcp_; \
+    struct _udp__padded_header _udp_; \
+    struct _intrinsic_metadata_padded_header _intrinsic_metadata; \
+    struct _l4_metadata__padded_header _l4_metadata_; \
+    struct valid_padded_header valid; \
+    \
+
 /*
  * A flow in the network.
  *
@@ -106,6 +285,8 @@ struct flow {
     ofp_port_t actset_output;   /* Output port in action set. */
     uint8_t pad1[6];            /* Pad to 64 bits. */
 
+    OVS_FIELDS
+
     /* L2, Order the same as in the Ethernet header! (64-bit aligned) */
     struct eth_addr dl_dst;     /* Ethernet destination address. */
     struct eth_addr dl_src;     /* Ethernet source address. */
@@ -134,8 +315,6 @@ struct flow {
     ovs_be16 tp_dst;            /* TCP/UDP/SCTP destination port. */
     ovs_be32 igmp_group_ip4;    /* IGMP group IPv4 address.
                                  * Keep last for BUILD_ASSERT_DECL below. */
-
-    uint8_t pad3[104];
 };
 BUILD_ASSERT_DECL(sizeof(struct flow) % sizeof(uint64_t) == 0);
 BUILD_ASSERT_DECL(sizeof(struct flow_tnl) % sizeof(uint64_t) == 0);
@@ -152,11 +331,6 @@ BUILD_ASSERT_DECL(sizeof(struct flow_tnl) % sizeof(uint64_t) == 0);
                               - FLOW_U64_SIZE(mpls_lse)                   \
     /* L4 */                  - FLOW_U64_SIZE(tp_src)                     \
                              )
-
-/* Remember to update FLOW_WC_SEQ when changing 'struct flow'. */
-BUILD_ASSERT_DECL(offsetof(struct flow, igmp_group_ip4) + sizeof(uint32_t)
-                  == sizeof(struct flow_tnl) + 192
-                  && FLOW_WC_SEQ == 33);
 
 /* Incremental points at which flow classification may be performed in
  * segments.
