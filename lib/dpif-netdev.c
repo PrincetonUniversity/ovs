@@ -72,7 +72,7 @@
 
 #include "p4/src/ovs_action_dpif_netdev.h" /* @Shahbaz: */
 
-#define PROFILE
+//#define PROFILE
 
 VLOG_DEFINE_THIS_MODULE(dpif_netdev);
 
@@ -3260,6 +3260,33 @@ emc_processing(struct dp_netdev_pmd_thread *pmd, struct dp_packet **packets,
                size_t cnt, struct netdev_flow_key *keys,
                struct packet_batch batches[], size_t *n_batches)
 {
+	size_t i, notfound_cnt = 0;
+
+	for (i = 0; i < cnt; i++) {
+		if (OVS_UNLIKELY(dp_packet_size(packets[i]) < ETH_HEADER_LEN)) {
+			dp_packet_delete(packets[i]);
+			continue;
+		}
+
+		if (i != cnt - 1) {
+			/* Prefetch next packet data */
+			OVS_PREFETCH(dp_packet_data(packets[i+1]));
+		}
+
+#ifdef PROFILE
+        cycles_count_start(pmd, PMD_CYCLES_PARSING);
+#endif
+        miniflow_extract(packets[i], &keys[notfound_cnt].mf);
+#ifdef PROFILE
+        cycles_count_end(pmd, PMD_CYCLES_PARSING);
+#endif
+        keys[notfound_cnt].len = 0;
+        notfound_cnt++;
+	}
+
+	return notfound_cnt;
+
+#ifdef SHAHBAZ_OLD
     struct emc_cache *flow_cache = &pmd->flow_cache;
     struct netdev_flow_key key;
     size_t i, notfound_cnt = 0;
@@ -3309,6 +3336,7 @@ emc_processing(struct dp_netdev_pmd_thread *pmd, struct dp_packet **packets,
     dp_netdev_count_packet(pmd, DP_STAT_EXACT_HIT, cnt - notfound_cnt);
 
     return notfound_cnt;
+#endif
 }
 
 static inline void
