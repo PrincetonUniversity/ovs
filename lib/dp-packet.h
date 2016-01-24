@@ -62,7 +62,7 @@ struct dp_packet {
                                       or UINT16_MAX. */
     struct pkt_metadata md;
 
-    OVS_HDR_ATTRS /* @Shahbaz: */
+    OVS_HDR_ATTRS /* @Shahbaz: TODO: move this to top ... otherwise this results in cache miss and significantly degrades miniflow_extract() performance. */
 };
 
 static inline void *dp_packet_data(const struct dp_packet *);
