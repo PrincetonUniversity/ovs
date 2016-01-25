@@ -58,6 +58,10 @@ struct dp_packet {
                                     * or UINT16_MAX. */
     uint16_t l4_ofs;               /* Transport-level header offset,
                                       or UINT16_MAX. */
+
+    uint16_t temp0[5];
+    uint8_t temp1[5];
+
     struct pkt_metadata md;
 };
 
@@ -268,6 +272,18 @@ dp_packet_reset_offsets(struct dp_packet *b)
     b->l2_5_ofs = UINT16_MAX;
     b->l3_ofs = UINT16_MAX;
     b->l4_ofs = UINT16_MAX;
+
+    b->temp0[0] = UINT16_MAX;
+    b->temp1[0] = 0;
+    b->temp0[1] = UINT16_MAX;
+    b->temp1[1] = 0;
+    b->temp0[2] = UINT16_MAX;
+    b->temp1[2] = 0;
+    b->temp0[3] = UINT16_MAX;
+    b->temp1[3] = 0;
+    b->temp0[4] = UINT16_MAX;
+    b->temp1[4] = 0;
+
 }
 
 static inline uint8_t

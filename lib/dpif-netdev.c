@@ -3370,7 +3370,7 @@ emc_processing(struct dp_netdev_pmd_thread *pmd, struct dp_packet **packets,
 {
 	size_t i, notfound_cnt = 0;
 
-	cycles_count_start(pmd, PMD_CYCLES_EMC_PROCESSING);
+//	cycles_count_start(pmd, PMD_CYCLES_EMC_PROCESSING);
 
 	for (i = 0; i < cnt; i++) {
 
@@ -3396,7 +3396,7 @@ emc_processing(struct dp_netdev_pmd_thread *pmd, struct dp_packet **packets,
 
     }
 
-    cycles_count_end(pmd, PMD_CYCLES_EMC_PROCESSING);
+//    cycles_count_end(pmd, PMD_CYCLES_EMC_PROCESSING);
 
 
 	return notfound_cnt;
@@ -3626,16 +3626,16 @@ dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
 //  cycles_count_start(pmd, PMD_CYCLES_EMC_PROCESSING);
     newcnt = emc_processing(pmd, packets, cnt, keys, batches, &n_batches);
 //    cycles_count_end(pmd, PMD_CYCLES_EMC_PROCESSING);
-    cycles_count_start(pmd, PMD_CYCLES_FP_PROCESSING);
+//    cycles_count_start(pmd, PMD_CYCLES_FP_PROCESSING);
     if (OVS_UNLIKELY(newcnt)) {
         fast_path_processing(pmd, packets, newcnt, keys, batches, &n_batches);
     }
-    cycles_count_end(pmd, PMD_CYCLES_FP_PROCESSING);
+//    cycles_count_end(pmd, PMD_CYCLES_FP_PROCESSING);
 
 #ifdef PROFILE
     cycles_count_start(pmd, PMD_CYCLES_DP_ACTIONS);
 #endif
-    cycles_count_start(pmd, PMD_CYCLES_DP_ACTIONS);
+//    cycles_count_start(pmd, PMD_CYCLES_DP_ACTIONS);
     for (i = 0; i < n_batches; i++) {
         batches[i].flow->batch = NULL;
     }
@@ -3643,7 +3643,7 @@ dp_netdev_input(struct dp_netdev_pmd_thread *pmd,
     for (i = 0; i < n_batches; i++) {
         packet_batch_execute(&batches[i], pmd, now);
     }
-    cycles_count_end(pmd, PMD_CYCLES_DP_ACTIONS);
+//    cycles_count_end(pmd, PMD_CYCLES_DP_ACTIONS);
 #ifdef PROFILE
     cycles_count_end(pmd, PMD_CYCLES_DP_ACTIONS);
     cycles_count_end(pmd, PMD_CYCLES_PROCESSING);
