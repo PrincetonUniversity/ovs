@@ -53,6 +53,9 @@ struct dp_packet {
     bool rss_hash_valid;        /* Is the 'rss_hash' valid? */
 #endif
     enum dp_packet_source source;  /* Source of memory allocated as 'base'. */
+
+    OVS_HDR_ATTRS /* @Shahbaz: TODO: move this to top ... otherwise this results in cache miss and significantly degrades miniflow_extract() performance. */
+
     uint8_t l2_pad_size;           /* Detected l2 padding size.
                                     * Padding is non-pullable. */
     uint16_t l2_5_ofs;             /* MPLS label stack offset, or UINT16_MAX */
@@ -62,7 +65,6 @@ struct dp_packet {
                                       or UINT16_MAX. */
     struct pkt_metadata md;
 
-    OVS_HDR_ATTRS /* @Shahbaz: TODO: move this to top ... otherwise this results in cache miss and significantly degrades miniflow_extract() performance. */
 };
 
 static inline void *dp_packet_data(const struct dp_packet *);
@@ -268,12 +270,12 @@ dp_packet_l2(const struct dp_packet *b)
 static inline void
 dp_packet_reset_offsets(struct dp_packet *b)
 {
-    b->l2_pad_size = 0;
-    b->l2_5_ofs = UINT16_MAX;
-    b->l3_ofs = UINT16_MAX;
-    b->l4_ofs = UINT16_MAX;
-
     OVS_HDR_RESET_ATTRS /* @Shahbaz: */
+
+//    b->l2_pad_size = 0;
+//    b->l2_5_ofs = UINT16_MAX;
+//    b->l3_ofs = UINT16_MAX;
+//    b->l4_ofs = UINT16_MAX;
 }
 
 OVS_HDR_GET_DP_PACKET_OFS /* @Shahbaz: */
