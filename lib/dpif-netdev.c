@@ -72,7 +72,7 @@
 
 #include "p4/src/ovs_action_dpif_netdev.h" /* @Shahbaz: */
 
-//#define PROFILE
+#define PROFILE
 
 VLOG_DEFINE_THIS_MODULE(dpif_netdev);
 
