@@ -130,13 +130,15 @@ bugs@openvswitch.org
 Computing LOC (Lines of Code) and MCO (Method Count)
 -------
 
-For LOC use `cloc` as follows.
+On our SIGCOMM, we have a discussion on how we were able to reduce the code complexity. In order to show our points, we added the lines of code and method count analysis. In order to replicate the result, we provide the following instructions.
+
+For LOC use `cloc` as follows (Note that we are counting the lines of code for the file `packets.c`).
 
 `cloc packets.c`
 
 For MCO, use `ctags` as follows. If on a OS X, please install ctags using homebrew
 
-`ctags --c++-kinds=f -x myfile.h`
+`ctags --c++-kinds=f -x packets.h`
 
 
 
