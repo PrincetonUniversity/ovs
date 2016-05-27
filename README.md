@@ -136,9 +136,9 @@ For LOC use `cloc` as follows (Note that we are counting the lines of code for t
 
 `cloc packets.c`
 
-For MCO, use `ctags` as follows. If on a OS X, please install ctags using homebrew
+For MCO, use `ctags` as follows. If on a OS X, please install ctags using homebrew. The following will compute the number of functions in the headers.
 
-`ctags --c++-kinds=f -x packets.h`
+`ctags --c-kinds=+fp-dms packets.h`
 
 
 
