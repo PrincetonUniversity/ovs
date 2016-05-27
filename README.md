@@ -126,3 +126,18 @@ bugs@openvswitch.org
 [INSTALL.XenServer.md]:INSTALL.XenServer.md
 [FAQ.md]:FAQ.md
 [tutorial/Tutorial.md]:tutorial/Tutorial.md
+
+Computing LOC (Lines of Code) and MCO (Method Count)
+-------
+
+For LOC use `cloc` as follows.
+
+`cloc packets.c`
+
+For MCO, use `ctags` as follows. If on a OS X, please install ctags using homebrew
+
+`ctags --c++-kinds=f -x myfile.h`
+
+
+
+
