@@ -1,0 +1,26 @@
+diff --git a/config/common_linuxapp b/config/common_linuxapp
+index 0de43d5..b36a04c 100644
+--- a/config/common_linuxapp
++++ b/config/common_linuxapp
+@@ -86,7 +86,7 @@ CONFIG_RTE_BUILD_SHARED_LIB=n
+ #
+ # Combine to one single library
+ #
+-CONFIG_RTE_BUILD_COMBINE_LIBS=n
++CONFIG_RTE_BUILD_COMBINE_LIBS=y
+ 
+ #
+ # Use newest code breaking previous ABI
+diff --git a/lib/librte_eal/linuxapp/igb_uio/igb_uio.c b/lib/librte_eal/linuxapp/igb_uio/igb_uio.c
+index 865a276..892082a 100644
+--- a/lib/librte_eal/linuxapp/igb_uio/igb_uio.c
++++ b/lib/librte_eal/linuxapp/igb_uio/igb_uio.c
+@@ -254,7 +254,7 @@ igbuio_pci_irqcontrol(struct uio_info *info, s32 irq_state)
+ 	else if (udev->mode == RTE_INTR_MODE_MSIX) {
+ 		struct msi_desc *desc;
+ 
+-		list_for_each_entry(desc, &pdev->msi_list, list)
++		list_for_each_entry(desc, &pdev->dev.msi_list, list)
+ 			igbuio_msix_mask_irq(desc, irq_state);
+ 	}
+ 	pci_cfg_access_unlock(pdev);
