@@ -141,5 +141,13 @@ For MCO, use `ctags` as follows. If on a OS X, please install ctags using homebr
 `ctags --c-kinds=+fp-dms packets.h`
 
 
+Running build.sh with Newer Kernel (>= 4.3) and/or newer DPDK
+-------
+The current `build.sh` will pull in DPDK version 2.1.0. This version of DPDK will not build in newer kernel (i.e. Ubuntu 16.04), so you would require a different set of patches to be applied.
+
+In order to fix this problem, you will have to edit the file `deps/dpdk/lib/librte_eal/linuxapp/igb_uio/igb_uio.c b/lib/librte_eal/linuxapp/igb_uio/igb_uio.c` before attempting to compile DPDPK.
+
+You can simply change all occurrences of `&pdev->msi_list` into `&pdev->dev.msi_list` and reinstall dpdk.
+
 
 
